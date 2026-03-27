@@ -1,0 +1,36 @@
+\section{Ablation Study: Data Normalization Strategy}
+\label{sec:ablation_normalization}
+
+One of the most critical engineering decisions in processing SHARAD radar data is the normalization strategy.
+Unlike standard RGB images (values 0-255), radar data represents echo power with a potentially infinite dynamic range.
+We conducted an ablation study to compare three normalization approaches and their impact on the GAN's ability to generate realistic subsurface textures.
+
+\subsection{Tested Approaches}
+\begin{enumerate}
+    \item \textbf{Method A: Linear Min-Max (Naive)}
+    $$ x_{norm} = \frac{x - x_{min}}{x_{max} - x_{min}} $$
+    Here, the raw power values are scaled linearly to [0, 1].
+    
+    \item \textbf{Method B: Z-Score Standardization}
+    $$ x_{norm} = \frac{x - \mu}{\sigma} $$
+    This centers the data around 0 with unit variance, common in many deep learning tasks.
+    
+    \item \textbf{Method C: Logarithmic Scaling + Min-Max (Proposed)}
+    $$ x_{dB} = 10 \log_{10}(x + \epsilon) $$
+    $$ x_{norm} = \frac{x_{dB} - \min(x_{dB})}{\max(x_{dB}) - \min(x_{dB})} $$
+    The data is first converted to decibels (dB) to compress the dynamic range, and then scaled to $[-1, 1]$ to match the \texttt{Tanh} output of the generator.
+\end{enumerate}
+
+\subsection{Results and Discussion}
+The experiments revealed drastic differences in the quality of the training data:
+
+\begin{itemize}
+    \item \textbf{Effect of Linear Scaling (Method A):} Radar data is dominated by the strong surface reflection, which can be orders of magnitude stronger than subsurface echoes. When using linear scaling, the surface peak sets the $x_{max}$ to a very high value, causing all faint subsurface features to be compressed into a tiny range near zero. Visually, the radargrams appeared almost black with a single white line (the surface). The GAN trained on this data failed completely, learning only to generate a black background.
+    
+    \item \textbf{Effect of Z-Score (Method B):} While better than linear scaling, Z-score does not bound the data to a fixed range (e.g., $[-1, 1]$). Outliers (strong reflections) resulted in extreme values that pushed the \texttt{Tanh} activation function into its saturation regions, leading to vanishing gradients and unstable training.
+    
+    \item \textbf{Success of Logarithmic Scaling (Method C):} The logarithmic transformation naturally aligns with the physics of wave attenuation, compressing the orders of magnitude of power difference into a linear decibel scale. This allows the faint subsurface layers to occupy a significant portion of the numeric range. When combined with Min-Max scaling to $[-1, 1]$, it provided the optimal input for the network. The GAN successfully learned to distinguish and reproduce both the strong surface reflection and the delicate subsurface textures.
+\end{itemize}
+
+This study confirms that \textbf{Logarithmic Pre-processing} is not just an enhancement but a strict requirement for the convergence of GANs on radar sounding data.
+

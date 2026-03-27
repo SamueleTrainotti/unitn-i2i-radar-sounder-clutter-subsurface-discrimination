@@ -1,0 +1,126 @@
+DEVICE: "cuda" # To be set manually at the moment
+RUN_TO_RESUME: "" # ID of the run to resume, e.g., "2023-10-28_15-30-00_pix2pix"
+GENERATOR_LEARNING_RATE: 2e-4
+DISCRIMINATOR_LEARNING_RATE: 1e-4
+BATCH_SIZE: 1
+NUM_WORKERS: 2
+PATCH_SIZE: 128
+PATCH_OVERLAP: 0
+CHANNELS_IMG: 1
+L1_LAMBDA: 100
+NUM_EPOCHS: 10
+LABEL_SMOOTHING: 0.1
+SAVE_EVERY: 5 # save model every n epochs
+EVOLUTION_EVERY: 1 # evaluate model every n epochs
+LOG_EVERY_N_STEPS: 10 # log metrics every n steps
+DISABLE_TQDM: True # disable tqdm progress bars for cleaner logging output
+LOAD_DATASET: true
+SAVE_DATASET: true
+LOAD_MODEL: true
+SAVE_MODEL: true
+CHECKPOINT_DISC: disc.pth.tar
+CHECKPOINT_GEN: gen.pth.tar
+
+# Metrics & Logging
+VAL_EVERY: 1
+FID_EVERY: 2
+LOG_GRADIENTS: True
+
+CHECKPOINT_P2P_LATEST: pix2pix_latest.pth.tar
+CHECKPOINT_CG_LATEST: cyclegan_latest.pth.tar
+
+# Normalization range: "range_zero_to_one" or "range_minus_one_to_one"
+NORMALIZATION_TYPE: "range_minus_one_to_one"
+
+# chose the model to use
+MODEL_NAME: cyclegan # or pix2pix
+# MODEL_NAME: pix2pix # or cyclegan
+
+# Discriminator receptive field
+DISCRIMINATOR_RECEPTIVE_FIELD: "34x34" # "70x70", "34x34", "16x16"
+
+# CycleGAN specific parameters
+LAMBDA_CYCLE: 10.0
+LAMBDA_IDENTITY: 0.5
+
+USE_AMP: false  # Automatic Mixed Precision
+
+# Early stopping settings
+EARLY_STOPPING_ENABLED: true
+EARLY_STOPPING_METRIC: "val_psnr" # Metric to monitor for early stopping
+EARLY_STOPPING_PATIENCE: 10 # Number of epochs to wait for improvement
+EARLY_STOPPING_MODE: "max" # "max" for metrics like PSNR/SSIM, "min" for loss
+EARLY_STOPPING_SMOOTHING_WINDOW: 1 # Number of epochs to average the metric over for smoothing
+EARLY_STOPPING_COMBINED_METRIC_WEIGHTS:
+  psnr: 0.5
+  ssim: 0.5
+  lpips: 0.0
+log_level: debug
+GENERATOR_TO_TEST: "G_AB"  # For CycleGAN: "G_AB" or "G_BA"
+save_tiff_images: false
+
+# Augmentation settings
+AUGMENTATION:
+  ADD_NOISE:
+    ENABLED: true
+    MEAN: 0.0
+    STD: 0.01
+
+# Directories for input data, which do not change between runs
+INPUT_DATA:
+  TRAIN: /media/datapart/samueletrainotti/data/train
+  VAL: /media/datapart/samueletrainotti/data/val
+  TEST: /media/datapart/samueletrainotti/data/test
+
+# Directories for output artifacts, which are generated during a run
+OUTPUT_DATA:
+  # Base directory where all experiment run folders will be created
+  BASE_DIR: /media/datapart/samueletrainotti/data/runs
+
+  # --- The following paths are relative to the unique run directory ---
+  LOGS: logs
+  TEMP: temp
+  TEMP_DATASET: temp/dataset
+  EVALUATION: evaluation
+  CHECKPOINTS: checkpoints
+
+# Plotting Configuration
+PLOTTING:
+  ADVERSARIAL_KEYS:
+    - train_D_A_loss
+    - train_D_B_loss
+    - train_G_AB_loss
+    - train_G_BA_loss
+    - train_D_loss
+    - train_G_fake_loss
+    - train_G_fake_loss_prop
+  STRUCTURAL_KEYS:
+    - train_G_loss
+    - train_cycle_loss
+    - train_identity_loss
+    - train_L1_loss
+    - train_L1_loss_prop
+  VAL_KEYS:
+    - val_val_G_loss
+    - val_val_cycle_loss
+    - val_val_L1_loss
+    - val_G_loss
+    - val_cycle_loss
+  QUALITY_METRICS:
+    - name: PSNR
+      train_key: train_psnr
+      val_key: val_psnr
+      ylabel: PSNR (dB)
+      color: '#1f77b4'
+    - name: SSIM
+      train_key: train_ssim
+      val_key: val_ssim
+      ylabel: SSIM
+      color: '#ff7f0e'
+    - name: LPIPS
+      train_key: train_lpips
+      val_key: val_lpips
+      ylabel: LPIPS
+      color: '#2ca02c'
+
+

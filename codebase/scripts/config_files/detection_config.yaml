@@ -1,0 +1,103 @@
+# ----------------------------------------------------
+# Configuration for the Anomaly Detection Script
+# ----------------------------------------------------
+# This file contains the essential parameters for running the detect_anomalies.py script.
+# The script will load the rest of the configuration (model architecture, data processing, etc.)
+# from the original training run of the specified model.
+#
+# Usage:
+# python scripts/detect_anomalies.py -c scripts/config_files/detection_config.yaml
+# ----------------------------------------------------
+
+# --- Core Parameters ---
+
+# log_level: The verbosity of logging. Options: "debug", "info", "warning", "error".
+log_level: info
+
+# MODEL_PATH: The absolute path to the directory containing the saved model checkpoints.
+# The script will automatically find the corresponding 'config.yaml' in the parent directory.
+# Example: "/media/datapart/samueletrainotti/data/runs/2025-11-10_00-41-51_cyclegan/checkpoints"
+MODEL_PATH: "/media/datapart/samueletrainotti/data/runs/2025-11-10_00-41-51_cyclegan/checkpoints"
+
+# --- Anomaly Detection Specifics ---
+
+# THRESHOLD: The threshold for detecting anomalies.
+THRESHOLD: 0.4
+
+# --- Anomaly Detection Metrics ---
+ANOMALY_DETECTION:
+  # METRICS: A list of metrics to use for anomaly detection.
+  # Available options: "L1", "L2", "SSIM", "LPIPS"
+  METRICS: ["L1", "L2", "SSIM", "LPIPS"]
+  # METHOD: The method for calculating the metrics.
+  # Available options: "pixel-level", "whole-image", "patch-based", "sliding-window"
+  METHOD: "pixel-level"
+  # Example for patch-based analysis:
+  # METHOD: "patch-based"
+  # PATCH_SIZE: 64 # The size of the patches for patch-based analysis.
+
+  PATCH_SIZE: 8 # The size of the patches for patch-based analysis.
+  SSIM_WINDOW_SIZE: 5 # The size of the sliding window for SSIM calculation.
+  L1_L2_WINDOW_SIZE: 5 # The size of the sliding window for L1/L2 calculation.
+
+  # --- Background Removal ---
+  # Method to remove background noise from the radargrams.
+  # Available options: "none", "pca", "avg_trace"
+  BACKGROUND_REMOVAL:
+    METHOD: "pca"
+    PCA_COMPONENTS: 2 # Number of principal components to keep for PCA.
+
+  # --- Gaussian Blur ---
+  # Apply a Gaussian blur to the real and reconstructed images before calculating the difference maps.
+  GAUSSIAN_BLUR:
+    ENABLED: false
+    SIGMA: 0.5 # Standard deviation for Gaussian kernel.
+
+  # --- Median Filter ---
+  # Apply a median filter to the real and reconstructed images before calculating the difference maps.
+  MEDIAN_FILTER:
+    ENABLED: false
+    WINDOW_SIZE: 3 # The size of the median filter window. Must be an odd integer.
+
+  # --- Time-Varying Gain (TVG) ---
+  # Apply a time-varying gain to the real and reconstructed images before calculating the difference maps.
+  TVG:
+    ENABLED: true
+    TYPE: 'linear' # 'linear', 'exponential', or 'power'
+    FACTOR: 5.0
+
+  # --- Z-Score Normalization ---
+  # Apply Z-score normalization to the real and reconstructed images before calculating the difference maps.
+  Z_SCORE_NORMALIZATION:
+    ENABLED: false
+  STD_WINDOW_SIZE: 11 # The size of the sliding window for standard deviation map calculation.
+
+# --- Data and Output Directories ---
+
+# NORMALIZATION:
+#   TYPE: The type of normalization to apply. Options: "range_minus_one_to_one", "range_zero_to_one", "fixed".
+#   FIXED_VALUES: The fixed normalization values to use if TYPE is "fixed".
+NORMALIZATION:
+  TYPE: "fixed"
+  FIXED_VALUES:
+    REAL_MIN: -260.0
+    REAL_MAX: 9.1160
+    SIM_MIN: -260.0
+    SIM_MAX: -226.1435
+
+# INPUT_DATA:
+#   TEST: The path to the directory containing the test data.
+INPUT_DATA:
+  TEST: /media/datapart/samueletrainotti/data/test
+
+# OUTPUT_DATA:
+#   BASE_DIR: The base directory where all anomaly detection run folders will be created.
+OUTPUT_DATA:
+  BASE_DIR: /media/datapart/samueletrainotti/data/anomaly_detection_runs
+
+# --- Plotting Options ---
+PLOTTING:
+  USE_MATPLOTLIB: true # If true, will use matplotlib for plotting, allowing for more detailed plots.
+  SHOW_TITLES: true # If true, will show titles on the plots.
+  GENERATE_SUMMARY: true # If true, will generate a summary plot of all anomalies.
+  GENERATE_EXTENDED_PLOT: true # If true, will generate a second, more detailed plot.

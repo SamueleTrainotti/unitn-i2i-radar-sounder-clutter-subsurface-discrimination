@@ -1,0 +1,50 @@
+---
+config:
+  look: neo
+  layout: dagre
+  theme: redux
+  backgroundColor: transparent
+  flowchart:
+    htmlLabels: false
+---
+flowchart LR
+  subgraph Forward_Cycle["Forward Cycle: Sim -> Real -> Sim"]
+    direction TB
+      Sim["Domain X: <br> Simulation"]:::domain
+      GenG["Generator G"]:::model
+      FakeReal["Fake Y: <br> Generated Real"]:::domain
+      GenF["Generator F"]:::model
+      RecSim["Rec X: <br> Reconstructed Sim"]:::domain
+      LossCyc["Cycle Consistency Loss <br> |X - Rec X|"]:::loss
+      L1txt["L1 distance"]:::loss
+  end
+
+  subgraph Discriminator_Y["Adversarial Check"]
+    direction TB
+      DiscY["Discriminator Y"]:::model
+      RealY["Domain Y: <br> Real Data"]:::domain
+      LossGAN["GAN Loss"]:::loss
+      RFtxt["Real vs Fake"]:::loss
+  end
+
+  %% Main flows
+  Sim --> GenG
+  GenG --> FakeReal
+  FakeReal --> GenF
+  GenF --> RecSim
+
+  %% Cycle L1 helper node
+  Sim -.-> L1txt
+  L1txt -.-> RecSim
+  RecSim -.-> LossCyc
+
+  %% Discriminator connections
+  FakeReal --> DiscY
+  RealY --> DiscY
+  DiscY -.-> RFtxt
+  RFtxt -.-> LossGAN
+
+  %% Class definitions
+  classDef domain fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+  classDef model  fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+  classDef loss   fill:#ffebee,stroke:#c62828,stroke-width:2px,stroke-dasharray: 5 5;

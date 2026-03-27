@@ -1,0 +1,24 @@
+\section{The Dataset: MRO SHARAD Radar Data}
+\label{sec:dataset}
+The primary dataset for this research is composed of RS data from the Shallow Radar (SHARAD) instrument~\cite{Seu_2007}, aboard NASA's Mars Reconnaissance Orbiter (MRO) \cite{Zurek_2007}.
+SHARAD is a RS designed to probe the Martian subsurface, providing cross-sectional views (radargrams) of the planet's polar ice caps and layered deposits.
+The data products are publicly available through the NASA Planetary Data System (PDS), the official archive for data from NASA's planetary missions~\cite{nasa_pds_geosciences}.
+
+The SHARAD data products are provided in a format that includes \texttt{.xml} label files and associated binary data files.
+The label files contain metadata describing the observation, while the binary files store the radargram.
+In this 2D representation, one axis represents the along-track dimension (the sequence of radar pulses as the spacecraft moves) and the other axis represents the echo time delay, which is proportional to the depth of the reflecting feature.
+The raw data values represent the power of the reflected signal. For visualization and analysis, these power values are typically converted to a logarithmic scale (decibels, dB) using the formula $P_{dB} = 10 \log_{10}(P_{linear})$.
+This conversion compresses the vast dynamic range of the radar signals, making subtle subsurface features more discernible.
+
+A key aspect of this project is the use of a paired dataset, which is essential for image-to-image translation tasks with models like Pix2Pix.
+The dataset consists of two corresponding sets of images:
+\begin{itemize}
+    \item \textbf{Simulated Radar Data (Input)}: Synthetic radargrams generated via \textbf{incoherent geometric-optics ray-tracing} over Elysium Planitia DEMs~\cite{SimIncoherentRS2024}. The simulator traces rays from SHARAD's orbital trajectory to surface scatterers, computing power returns via the radar equation while neglecting subsurface propagation and phase interference. These simulations produce \enquote{clean} or idealized radargrams without speckle, matching SHARAD's orbital geometry. Each simulated radargram corresponds spatially to a real SHARAD observation acquired over identical topography.
+    \item \textbf{Real SHARAD Data (Target)}: This consists of actual radargrams collected by the SHARAD instrument. These images contain complex noise patterns, surface clutter, subsurface reflectors, multiplicative speckle, and other artifacts resulting from the instrument's interaction with the Martian surface and subsurface.
+\end{itemize}
+Simulated inputs are perfectly spatially aligned with real targets via precise orbit-to-surface coordinate transforms.
+Notice that these pairs are not calibrated in absolute power or SNR~\cite{Seu_2007}: simulated peak returns lack real instrument gain patterns, and subsurface-free simulations exhibit artificially high deep-SNR absent in observations.
+We then apply dataset-wide logarithmic scaling/normalization (Section~\ref{sec:preprocessing_patching}) that equalizes dynamic range while preserving relative contrast essential for texture learning~\cite{Zhu_2017}.
+
+This pairing allows the model to learn a direct mapping from the cleaner, simulated representation to noisy real-world data, thereby providing the foundation for the core methodological hypothesis: a generator trained to translate clutter-only simulations into realistic radargrams will systematically under-reconstruct genuine subsurface interfaces, which consequently emerge as high-confidence residuals suitable for unsupervised anomaly detection.
+

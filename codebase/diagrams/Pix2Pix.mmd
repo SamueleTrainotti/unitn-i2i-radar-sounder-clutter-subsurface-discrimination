@@ -1,0 +1,52 @@
+---
+config:
+  look: neo
+  layout: dagre
+  theme: redux
+  backgroundColor: transparent
+  flowchart:
+    htmlLabels: false
+---
+graph LR
+    %% Styles
+    classDef domain fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
+    classDef model  fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef loss   fill:#ffebee,stroke:#c62828,stroke-width:2px,stroke-dasharray: 5 5;
+
+    %% 1) Main generator path
+    X["Domain X:<br/>Input Image"]:::domain
+    G["Generator G<br/>(U-Net)"]:::model
+    Yhat["Fake Y:<br/>Generated Output"]:::domain
+    Y["Domain Y:<br/>Ground Truth"]:::domain
+    L1["L1 Reconstruction Loss<br/>|Y - G(X)|"]:::loss
+    L1txt["L1 distance"]:::loss
+
+    X --> G --> Yhat --> Y
+    Yhat -.-> L1txt
+    L1txt -.-> Y
+    Y -.-> L1
+
+    %% 2) Pair construction
+    subgraph Pairs["Concatenated Pairs<br/>(Conditioning for D)"]
+      direction TB
+      PairReal["[X, Y]<br/>Real Pair"]:::domain
+      PairFake["[X, G(X)]<br/>Fake Pair"]:::domain
+    end
+
+    X -.-> PairReal
+    X -.-> PairFake
+    Y -.-> PairReal
+    Yhat -.-> PairFake
+
+    %% 3) Discriminator
+    subgraph DPath["Adversarial Check<br/>(Conditional PatchGAN)"]
+      direction TB
+      D["Discriminator D<br/>(PatchGAN)"]:::model
+      RFtxt["Real vs Fake"]:::loss
+      LGAN["GAN Loss"]:::loss
+
+      PairReal --> D
+      PairFake --> D
+      D -.-> RFtxt
+      RFtxt -.-> LGAN
+    end

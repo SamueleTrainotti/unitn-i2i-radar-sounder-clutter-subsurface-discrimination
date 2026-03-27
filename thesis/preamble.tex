@@ -1,0 +1,50 @@
+% 2 side format
+\documentclass[epsfig,a4paper,11pt,titlepage,twoside,openany]{book}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{plain}
+\usepackage{setspace}
+\usepackage[paperheight=29.7cm,paperwidth=21cm,outer=1.5cm,inner=2.5cm,top=2cm,bottom=2cm]{geometry} % layout setting
+\usepackage{titlesec} % custom setup title of chanpter
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+% \usepackage{newtxtext,newtxmath} % times new roman
+\usepackage{tikz} % load TikZ
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+
+%%%%%%%%%%%%%%
+% code-like blocks
+\usepackage{xcolor}
+\usepackage{changes}
+\definecolor{light-gray}{gray}{0.95}
+\newcommand{\code}[1]{\colorbox{light-gray}{\texttt{#1}}}
+\usepackage{listings}
+% underscores
+\usepackage[strings]{underscore}
+% quotes
+\usepackage[autostyle]{csquotes}
+% Code tree
+\usepackage{dirtree}
+
+%%%%%%%%%%%%%%
+% support for accented letters
+%
+%\usepackage[latin1]{inputenc} % Windows;
+
+%\usepackage[applemac]{inputenc} % Mac.
+
+% degree symbol
+\usepackage{gensymb}
+
+
+\singlespacing
+
+% italian language
+%\usepackage[italian]{babel}
+\usepackage[hidelinks]{hyperref}
+

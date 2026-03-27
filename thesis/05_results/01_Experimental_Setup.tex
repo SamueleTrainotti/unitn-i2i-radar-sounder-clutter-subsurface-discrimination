@@ -1,0 +1,96 @@
+\section{Experimental Setup}
+\label{sec:experimental_setup}
+To ensure the reproducibility and scientific validity of our results, a rigorous experimental framework was established.
+The core of our investigation relies on a custom PyTorch implementation designed to handle the unique constraints of SHAllow RADar (SHARAD) data, with a standardized hyperparameter configuration optimized for the specific characteristics of the dataset and the network architectures.
+The following subsections describe the data acquisition process and the multi-faceted metric suite used to quantify generative realism.
+The hyperparameter configurations used during the training campaigns, including learning rates, optimization strategies, and loss weighting, were previously established and are summarized in Table~\ref{tab:hyperparams} (Section~\ref{sec:modular_implementation}).
+For a complete list of the configuration states and environment variables used across all runs, the reader is referred to Appendix~\ref{app:reproducibility}.
+
+\subsection{Selection of Regions of Interest (ROIs)}
+\label{subsec:roi_selection}
+The selection of the training and testing datasets for this study was driven by a strategic geological assessment rather than random sampling.
+The efficacy of a generative model in scientific applications is contingent upon the quality and representativeness of the input data.
+Consequently, we identified two distinct Martian regions to serve disjoint roles in the training and validation pipeline: the Elysium Planitia for learning the background distribution, and a specific targeted strip for validating the anomaly detection capabilities.
+
+\subsubsection{Training Set: Elysium Planitia and The \enquote{Big Data} Approach}
+For the construction of the training set, a \enquote{quantity-first} approach was adopted.
+Deep generative models, particularly those based on the GAN framework, are notoriously data-hungry, requiring vast amounts of varied examples to learn robust internal representations and avoid mode collapse.
+To satisfy this requirement, we selected the entire \textbf{Elysium Planitia} region as our primary source of training data.
+
+From a geological perspective, Elysium Planitia is characterized as a vast volcanic region dominated by extensive lava plains.
+The surface exhibits notably \textbf{low topographic roughness}, minimizing the complexity of off-nadir surface clutter that often complicates radar interpretation.
+Ideally suited for this task, the subsurface stratigraphy consists of \textbf{regular subsurface layering} resulting from sequential episodes of lava flows.
+This geometric regularity is crucial for the stability of the Generative Adversarial Network.
+
+This choice resulted in a large dataset consisting of approximately \textbf{1600 raw radar observation pairs}.
+By ingesting the entire zone, we effectively capture the full variance of the Martian subsurface in this region, including a wide spectrum of noise profiles, surface clutter types, and geological features.
+
+It is important to acknowledge the trade-off inherent in this strategy.
+By including the comprehensive set of observations from Elysium Planitia without granular manual filtering, the training set inevitably contains a percentage of \enquote{noisy} or \enquote{less useful} samples, represented by radargrams where the signal might be too attenuated, the subsurface features distinctively absent, or the thermal noise dominant.
+However, recent literature in deep learning suggests that large-scale neural networks are remarkably robust to label noise and can benefit from the regularization effect provided by a diverse, though imperfect, dataset.
+
+The consistent, parallel nature of the stratigraphic sequences allows the neural network to learn the "texture" of the SHARAD instrument's noise response and the dielectric behavior of the surface without being confounded by chaotic scattering or complex tectonic deformation.
+The network is forced to learn the \enquote{common denominator}, specifically the underlying physics of radar reflection and the general structure of subsurface layers, rather than overfitting to a small, manually curated subset.
+It serves as the "control" dataset, enabling the model to internalize the rules of radar signal propagation in a standard Martian regolith.
+
+\subsubsection{Test Set: Precision, Human Validation \& Anomaly Verification}
+In contrast to the training set, the validation of the anomaly detector requires a target that deviates from the learned norm.
+We designated a specific Region of Interest (ROI) bounded by coordinates [172$^{\circ}$E--174$^{\circ}$E, 7$^{\circ}$N--8$^{\circ}$N].
+
+This area was selected based on a preliminary visual inspection of SHARAD radargrams, which revealed the presence of \textbf{marked subsurface reflectors}.
+These strong dielectric contrasts are potentially indicative of buried massive ice deposits or distinct interfaces between differing geological materials.
+
+To ensure the highest quality for evaluation, the test set was constructed through a rigorous, manual selection process.
+Therefore, the large-scale ingestion strategy adopted during training was not considered suitable for the construction of the test set.
+For the test set, several hundred radargrams were visually examined to identify specific \enquote{Golden Samples}, defined as regions satisfying the following criteria:
+
+\begin{itemize}
+    \item Clearly discernible and unambiguous subsurface layering.
+    \item Favorable signal-to-noise ratio (SNR), enabling reliable comparison between reconstructed and original data.
+    \item Geological features representative of the principal structures under investigation (e.g., well-defined interfaces or potential anomalies).
+\end{itemize}
+
+This human-in-the-loop selection procedure ensures that both quantitative metrics (e.g., SSIM, PSNR) and qualitative evaluations are grounded in scientifically meaningful examples.
+It further prevents the evaluation results from being biased by low-quality input data, for which even an ideal reconstruction would remain indistinguishable from noise.
+
+The rationale for this selection is to test the \textbf{generalization capability} of the anomaly detector by presenting it with an "exception" to the rules learned from Elysium.
+Since the electromagnetic simulator used to generate the input paired data does not account for these specific subsurface structures (being based solely on surface topography), the CycleGAN—trained to reproduce the simulation's logic—is expected to generate a "blind" reconstruction that lacks these features.
+Consequently, a comparison between the generated "background-only" image and the real radargram (containing the reflectors) should yield a high-intensity difference map specifically at these coordinates.
+This discrepancy serves as our "Ground Truth" for validating the sensitivity and accuracy of the anomaly detection algorithm, distinguishing its true performance from its ability to merely reproduce background noise.
+
+\subsection{Dataset Composition \& Preprocessing}
+\label{subsec:dataset}
+The dataset employed in this study is derived from the SHallow RADar (SHARAD) instrument onboard the Mars Reconnaissance Orbiter (MRO), specifically targeting the Elysium Planitia region.
+The complete dataset comprises approximately 1,600 unique radargrams, which were rigorously curated to ensure a representative distribution of Martian subsurface features.
+To facilitate a robust learning process and monitor generalization capability, the dataset was partitioned following a standard split: 80\% of the data ($N \approx 1280$) was allocated for training, while the remaining 20\% ($N \approx 320$) constituted the validation set used for hyperparameter tuning and early stopping. Additionally, a distinct set of radargrams ($N = 10$, which resulted in 60 patches) was strictly reserved for the final testing phase to evaluate the model on unseen geographies.
+
+The raw data requires a specialized pre-processing pipeline, implemented within the project's \texttt{MapDataset} module, to be suitable for deep learning applications.
+Initially, the raw radar echoes are loaded using the \texttt{pdr} library and converted into a logarithmic decibel scale to compress the high dynamic range of the signal. Subsequently, a global Min-Max normalization is applied, rescaling the pixel intensity values to the range $[-1, 1]$.
+This normalization step is critical for stabilizing the training of the Generative Adversarial Network, matching the output range of the generator's Tanh activation function.
+Finally, instead of processing entire radargrams, which can exceed $3600 \times 1000$ pixels, the images are tessellated into square patches of $128 \times 128$ pixels.
+This patching strategy serves a dual purpose: it drastically reduces peak Video RAM (VRAM) requirements, allowing for efficient training on standard GPU hardware, and it increases the effective size of the dataset, providing the model with a diverse set of local textural examples independent of global stratigraphy.
+
+\subsection{Hardware \& Implementation Details}
+\label{subsec:hardware}
+As detailed in Chapter~\ref{cha:methodology}, the experimental pipeline relies on a modular, containerized PyTorch architecture.
+While initial prototyping occurred locally, the extensive training campaigns presented in this chapter were executed on a Linux-based High-Performance Computing (HPC) cluster equipped with NVIDIA GPUs. 
+
+The Docker-based setup ensured perfect reproducibility across these environments without procedural overhead.
+During the training phase, Automatic Mixed Precision (AMP) and custom CUDA-accelerated routines were heavily utilized to maximize throughput and minimize the VRAM footprint.
+Finally, the systematic exploration of the hyperparameter space was orchestrated by the Optuna framework, which was seamlessly integrated into the training loops to empirically determine the optimal configuration for the generative models.
+
+\subsection{Evaluation Metrics}
+\label{subsec:evaluation_metrics}
+Quantifying the performance of generative models in unpaired image-to-image translation requires a composite evaluation protocol that assesses both pixel-level fidelity and perceptual realism.
+As previously introduced and theoretically defined in Section~\ref{sec:anomaly_detection_methodology}, we employ a specific suite of metrics, namely Peak Signal-to-Noise Ratio (PSNR), Structural Similarity Index (SSIM), and Learned Perceptual Image Patch Similarity (LPIPS), to evaluate the model outputs.
+Rather than redefining their mathematical formulation, this section outlines how they are applied in practice to score the generative fidelity of the translated radargrams:
+
+\begin{itemize}
+    \item \textbf{Peak Signal-to-Noise Ratio (PSNR):} Derived directly from the Mean Squared Error (MSE), PSNR is used to measure the baseline pixel-wise reconstruction error. While a high PSNR implies low numerical deviation, in the context of radar sounding it correlates poorly with human perception of \enquote{realism}. We track it primarily as a sanity check for model convergence, noting its extreme sensitivity to the small spatial misalignments common in unpaired translation.
+    \item \textbf{Structural Similarity Index (SSIM)~\cite{Wang_2004}:} In our operational pipeline, SSIM evaluates the preservation of structural geology. Since the continuity and relative geometry of subsurface horizons carry most of the scientific information (rather than absolute pixel intensities), SSIM serves to penalize models that distort or hallucinate stratigraphy during the translation process.
+    \item \textbf{Learned Perceptual Image Patch Similarity (LPIPS)~\cite{Zhang_2018_CVPR}:} This metric is utilized to assess how closely the synthesized radargrams match the perceptual texture and stochastic speckle statistics of real SHARAD data. Being robust to the minor spatial shifts that heavily penalize PSNR, LPIPS acts as our primary proxy for evaluating the true generative realism of the CycleGAN.
+\end{itemize}
+
+These metrics are automatically computed by the \texttt{compare\_models.py} framework and reported both as dataset-wide averages and as full probability distributions, allowing us to capture the variance of generative quality across different Martian topographies.
+
+

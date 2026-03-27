@@ -1,0 +1,72 @@
+---
+config:
+  look: neo
+  layout: dagre
+  theme: redux
+  backgroundColor: transparent
+  flowchart:
+    htmlLabels: false
+---
+graph LR
+    classDef hardware fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef script fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef data fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
+    classDef model fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    subgraph SG_Ingestion [1. Data Acquisition & Ingestion]
+        direction TB
+        NASAPDS[(NASA PDS <br/> Node)]:::hardware
+        LinkList(url_list.txt):::data
+        WgetScript[[auto_wget.sh <br/> Bash Script]]:::script
+        RawStore[(Raw Data <br/> TIFF/IMG)]:::data
+        
+        NASAPDS -.-> LinkList
+        LinkList --> WgetScript
+        WgetScript --> RawStore
+    end
+    subgraph SG_Preproc [2. Pre-processing & Caching]
+        direction TB
+        RawStore --> PyPreproc[[process.py <br/> MapDataset Module]]:::script
+        
+        subgraph Logic_Preproc [Processing Logic]
+            Step1[Surface Alignment <br/> & Horizon Tracking]
+            Step2[Tiling / Patching <br/> 256x256 px]
+            Step3[Normalization <br/> MinMax / Log]
+        end
+        
+        PyPreproc --> Step1 --> Step2 --> Step3
+        Step3 --> CacheStore[(Processed Cache <br/> Binary Chunks)]:::data
+    end
+    subgraph SG_Train [3. CycleGAN Training Loop]
+        direction TB
+        CacheStore --> DataLoader(PyTorch DataLoader):::script
+        
+        subgraph GPU_Env [GPU Environment - Docker]
+            GenG(Generator G <br/> Sim->Real):::model
+            GenF(Generator F <br/> Real->Sim):::model
+            Disc(Discriminators):::model
+            Loss[Cycle Consistency <br/> + GAN Loss]
+        end
+        
+        DataLoader --> GenG & GenF
+        GenG <--> Loss
+        GenF <--> Loss
+        Disc -.- Loss
+    end
+    subgraph SG_Infer [4. Anomaly Detection Application]
+        direction TB
+        SimInput(Simulated Input):::data
+        TrainedGen(Trained Gen G):::model
+        RealRef(Real Reference):::data
+        DiffMap(Difference Map):::data
+        Threshold{Thresholding <br/> Z-Score}
+        Result(Anomaly Mask):::data
+        
+        SimInput --> TrainedGen
+        TrainedGen --> DiffMap
+        RealRef --> DiffMap
+        DiffMap --> Threshold
+        Threshold --> Result
+    end
+    SG_Ingestion --> SG_Preproc
+    SG_Preproc --> SG_Train
+    SG_Train -.- TrainedGen

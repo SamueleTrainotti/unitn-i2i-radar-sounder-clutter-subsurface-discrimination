@@ -1,0 +1,60 @@
+---
+config:
+  look: neo
+  layout: dagre
+  theme: redux
+  backgroundColor: transparent
+  flowchart:
+    htmlLabels: false
+---
+flowchart LR
+ subgraph DiskLayer["DISK STORAGE (SSD/HDD)"]
+    direction TB
+        FullDataset[("Full Dataset <br/> > 50GB")]
+        Chunk0["Chunk_00.pt"]
+        Chunk1["Chunk_01.pt"]
+        ChunkN["Chunk_N.pt"]
+  end
+ subgraph Mapper["MapDataset Class Logic"]
+        IndexCalc["Index Mapper <br/> idx -> (chunk_id, rel_idx)"]
+        CacheMgr{"Is Chunk in <br/> RAM Cache?"}
+  end
+ subgraph RamLayer["SYSTEM RAM (CPU)"]
+    direction TB
+        Request["Get Item: idx=1542"]
+        Mapper
+        ActiveBuffer["Active Chunk Buffer <br/> (Limit: 2 Chunks)"]
+        LoadDisk["Load from Disk <br/> & Evict Oldest"]
+  end
+ subgraph GPULayer["GPU VRAM"]
+    direction TB
+        BatchTensor["Batch Tensor <br/> [B, C, H, W]"]
+        TrainStep["Training Step"]
+  end
+    FullDataset -.-> Chunk0 & Chunk1 & ChunkN
+    Request --> IndexCalc
+    IndexCalc --> CacheMgr
+    CacheMgr -- YES --> ActiveBuffer
+    CacheMgr -- NO --> LoadDisk
+    Chunk1 -.-> LoadDisk
+    LoadDisk --> ActiveBuffer
+    ActiveBuffer -- Extract Patch --> BatchTensor
+    BatchTensor --> TrainStep
+
+     FullDataset:::disk
+     Chunk0:::disk
+     Chunk1:::disk
+     ChunkN:::disk
+     Request:::logic
+     IndexCalc:::logic
+     CacheMgr:::logic
+     ActiveBuffer:::ram
+     LoadDisk:::logic
+     BatchTensor:::gpu
+     TrainStep:::gpu
+    classDef disk fill:#eceff1,stroke:#455a64,stroke-width:2px
+    classDef ram fill:#fff8e1,stroke:#ff8f00,stroke-width:2px
+    classDef gpu fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
+    classDef logic fill:#f3e5f5,stroke:#8e24aa,stroke-width:1px,stroke-dasharray: 5 5
+    linkStyle 6 stroke:#ff0000,stroke-width:2px,fill:none
+    linkStyle 7 stroke:#ff0000,stroke-width:2px,fill:none

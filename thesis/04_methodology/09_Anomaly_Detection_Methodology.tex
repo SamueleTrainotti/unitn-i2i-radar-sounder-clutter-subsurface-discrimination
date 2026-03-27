@@ -1,0 +1,96 @@
+\section{Anomaly Detection Methodology}
+\label{sec:anomaly_detection_methodology}
+The primary application of the trained image-to-image translation models in this project is the unsupervised detection of subsurface anomalies in SHARAD radargrams.
+To understand \textit{why} Image-to-Image (I2I) translation is exceptionally suited for this task, we must consider the physical limitations of our input data.
+
+Upon training our model, we obtain a generator $G$ capable of converting a given simulated scenario (based purely on surface topography) into a highly realistic radargram.
+Crucially, because the input simulations inherently lack any information about subsurface interfaces, the neural network learns to synthesize only the \enquote{normal} background distribution: surface clutter, speckle, and thermal noise.
+
+
+Therefore, when we input a specific simulated radargram $x_{sim}$, the generator outputs a \enquote{blind} reconstruction $x_{gen} = G(x_{sim})$ that represents how the scene \textit{should} look if no subsurface geology were present.
+By calculating the pixel-wise difference between this generated baseline $x_{gen}$ and the actual real-world observation $x_{real}$, genuine subsurface reflectors emerge as statistically significant residuals.
+This approach effectively isolates the anomalies by subtracting the learned clutter.
+
+The anomaly detection process is implemented in the \texttt{scripts/detect\_anomalies.py} script and follows a configurable pipeline, conceptually illustrated in Figure~\ref{fig:anomaly_detection_pipeline} and mirroring the final operational phase mapped in Block 4 of the general system architecture (Figure~\ref{fig:system_architecture2}):
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        box/.style={rectangle, draw, minimum width=3cm, minimum height=1.2cm, align=center, thick, rounded corners=2pt},
+        circle_op/.style={circle, draw, thick, minimum size=0.8cm, inner sep=0pt, align=center},
+        textnode/.style={align=center},
+        arrow/.style={-{Stealth}, thick}
+    ]
+
+    % --- RIGA 1: Generazione (Y = 0) ---
+    \node[textnode] (sim)  at (0, 0) {Simulated \\ Radargram ($x$)};
+    \node[box, fill=blue!10] (gen)  at (4, 0) {\textbf{Trained} \\ \textbf{Generator} ($G$)};
+    \node[textnode] (fake) at (8, 0) {Generated \\ Background ($\hat{y}$)};
+
+    % --- RIGA 2: Sottrazione (Y = -2) ---
+    % Il nodo reale è perfettamente allineato sotto il generatore (X = 4)
+    \node[textnode] (real) at (4, -2) {Real \\ Observation ($y$)};
+    % Il nodo differenza è perfettamente allineato sotto il fake (X = 8)
+    \node[circle_op, fill=yellow!20] (diff) at (8, -2) {$-$};
+
+    % --- RIGA 3: Metriche (Y = -4) ---
+    % L'output torna perfettamente in colonna con il generatore (X = 4)
+    \node[textnode] (anomaly) at (4, -4) {Anomaly Map \\ (Residuals)};
+    % La metrica è perfettamente in colonna con la differenza (X = 8)
+    \node[box, fill=green!10] (metric) at (8, -4) {\textbf{Distance Metric} \\ (L1, L2, SSIM)};
+
+    % ---- FRECCE ----
+    \draw [arrow] (sim) -- (gen);
+    \draw [arrow] (gen) -- (fake);
+    
+    \draw [arrow] (fake) -- (diff);
+    \draw [arrow] (real) -- (diff);
+    
+    \draw [arrow] (diff) -- (metric);
+    \draw [arrow] (metric) -- (anomaly);
+
+    \end{tikzpicture}
+    \caption{Flowchart of the proposed anomaly detection methodology. A simulated radargram ($x_{sim}$) is translated into a realistic background representation ($x_{gen}$) containing only noise and clutter. The difference between this generated baseline and the actual real-world observation ($x_{real}$) highlights un-modeled subsurface features, producing the final anomaly map.}
+    \label{fig:anomaly_detection_pipeline}
+\end{figure}
+
+\subsection{Reconstruction and Difference Map Calculation}
+Given an input simulated radargram $x_{sim}$, the trained generator produces a reconstructed baseline version $x_{gen}$ of its simulated counterpart.
+The core of the anomaly detection process lies in quantifying the dissimilarity between this reconstruction and the ground truth real observation $x_{real}$.
+To prevent edge artifacts and allow for the computation of perceptual metrics, the similarity evaluation is strictly performed on the full-resolution $128 \times 128$ images before any local aggregation takes place.
+This is done by computing a \textbf{dense difference map $\mathcal{M}$}, which highlights the areas where the two images diverge.
+This project supports several metrics for this purpose, each capturing different aspects of image similarity at the pixel-neighborhood level.
+
+\begin{itemize}
+    \item \textbf{L1 Distance (Mean Absolute Error):} The L1 distance measures the absolute difference between pixel values. It is a simple and effective way to capture the magnitude of errors. The L1 distance between the real observation $x_{real}$ and the generated background $x_{gen}$ is given by:
+    $$ \mathcal{D}_{L1}(x_{real}, x_{gen}) = |x_{real} - x_{gen}| $$
+
+    \item \textbf{L2 Distance (Mean Squared Error):} The L2 distance measures the squared difference between pixel values. Compared to L1, it penalizes larger errors more heavily.
+    $$ \mathcal{D}_{L2}(x_{real}, x_{gen}) = (x_{real} - x_{gen})^2 $$
+
+    \item \textbf{Structural Similarity Index (SSIM):} SSIM is a perceptual metric that considers luminance, contrast, and structure. The difference map can be computed as $1 - \text{SSIM}(x_{real}, x_{gen})$.
+
+    \item \textbf{Learned Perceptual Image Patch Similarity (LPIPS):} LPIPS uses a deep network to compute a perceptually-aligned distance between the images~\cite{Zhang_2018_CVPR}.
+\end{itemize}
+
+\subsection{Anomaly Score Calculation Methods}
+Once a difference map $\mathcal{M}$ is computed using one of the metrics described above, the raw values need to be aggregated into a coherent \enquote{Anomaly Score} that can be thresholded to make a binary decision.
+The method used for this aggregation significantly impacts the spatial resolution and noise sensitivity of the detector.
+We implemented and compared several distinct strategies.
+
+\subsubsection{Pixel-Level Scoring}
+This is the most granular approach, where the anomaly score $A_{i,j}$ at coordinates $(i,j)$ is simply the raw value of the anomaly map $\mathcal{M}_{i,j}$:
+$$ A_{i,j} = \mathcal{M}_{i,j} $$
+While this method preserves the maximum theoretical resolution, allowing for the detection of single-pixel anomalies, it is inherently unstable and sensitive to speckle noise.
+Radar data is characterized by speckle noise, constructive and destructive interference patterns that vary stochastically.
+A pixel-level difference can be high simply due to noise variance rather than a genuine geological discrepancy, leading to a "salt-and-pepper" distribution of False Positives.
+
+\subsubsection{Patch-Based Aggregation}
+To mitigate the noise sensitivity, the resulting difference map $\mathcal{M}$ is spatially aggregated using non-overlapping windows of size $k \times k$ (e.g., $16 \times 16$).
+In practice, this is efficiently implemented as a 2D average pooling operation over the residual tensor.
+The anomaly score for a patch $P$ is calculated as the mean intensity of the difference values within that region:
+$$ A_P = \frac{1}{k^2} \sum_{(i,j) \in P} \mathcal{M}_{i,j} $$
+This averaging acts as a low-pass filter, suppressing high-frequency noise.
+However, it introduces a \enquote{blocking artifact} and reduces the effective spatial resolution.
+If a small anomaly lies on the boundary between two patches, its energy is split, potentially causing both patches to fall below the detection threshold (False Negative).
+

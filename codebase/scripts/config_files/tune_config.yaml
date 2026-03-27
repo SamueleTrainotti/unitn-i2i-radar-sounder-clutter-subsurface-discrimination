@@ -1,0 +1,57 @@
+# Configuration for Optuna hyperparameter search space.
+
+# Static parameters to override config.yaml for the tuning run.
+# These are not part of the hyperparameter search space.
+run_settings:
+  n_trials: 2
+  n_epochs: 2
+  metric_to_optimize: "val_psnr" # The metric to optimize
+  direction: "maximize" # "maximize" or "minimize"
+
+# Common parameters are applied to all models being tested.
+common_params:
+  - name: g_lr
+    type: float
+    maps_to: GENERATOR_LEARNING_RATE
+    low: 1.0e-5
+    high: 1.0e-3
+    log: true
+  - name: d_lr
+    type: float
+    maps_to: DISCRIMINATOR_LEARNING_RATE
+    low: 1.0e-5
+    high: 1.0e-3
+    log: true
+  - name: beta1
+    type: float
+    maps_to: BETA1
+    low: 0.5
+    high: 0.9
+
+# The model_selector defines which model to use for a given trial.
+# This allows testing different model architectures in the same study.
+model_selector:
+  name: model_name
+  type: categorical
+  choices: [pix2pix, cyclegan]
+
+# Model-specific parameters are only applied when the corresponding
+# model is selected by the model_selector.
+model_specific_params:
+  pix2pix:
+    - name: pix2pix_l1_lambda
+      type: float
+      maps_to: L1_LAMBDA
+      low: 50
+      high: 200
+  cyclegan:
+    - name: cyclegan_lambda_cycle
+      type: float
+      maps_to: LAMBDA_CYCLE
+      low: 5.0
+      high: 15.0
+    - name: cyclegan_lambda_identity
+      type: float
+      maps_to: LAMBDA_IDENTITY
+      low: 0.0
+      high: 10.0

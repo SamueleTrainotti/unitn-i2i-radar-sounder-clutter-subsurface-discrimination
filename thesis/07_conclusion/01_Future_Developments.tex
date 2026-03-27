@@ -1,0 +1,45 @@
+\section{Future Developments}
+\label{cha:future_work}
+
+The present work has laid the foundations for a GAN-based anomaly detection system, but has also highlighted some limitations and paved the way for numerous and promising future developments.
+
+\subsection{Improving Domain Physics Acquisition}
+
+As discussed in Section~\ref{subsec:physics_analysis}, the depth-dependent intensity profiles of the GAN reconstructions are broadly consistent with those of real radargrams, suggesting that the model may have partially captured the physics of signal attenuation.
+However, it remains uncertain whether this reflects genuine physical learning or a statistical artefact of the training distribution.
+Regardless of the underlying mechanism, improving the explicit physical fidelity of the generative model is a key direction for future work.
+Several strategies can be explored toward this goal:
+
+\begin{itemize}
+    \item \textbf{Introducing a Physics-Informed Loss:} A dedicated loss term could be introduced to penalize reconstructions whose depth-integrated energy profile deviates from an expected attenuation model (e.g., exponential decay). This would provide an explicit physical constraint regardless of whether the current model has already learned attenuation implicitly, making the physical behaviour verifiable, controllable, and robust to out-of-distribution surface conditions.
+    \item \textbf{Diagnostic Experiments on Physics Acquisition:} To determine whether the observed attenuation profile is the result of genuine physical learning or a statistical artefact, targeted experiments are needed. These include: evaluating the model on radargrams from geographically distinct regions with different surface properties; testing on artificially constructed inputs with modified attenuation slopes; and analysing the model's internal feature representations using interpretability tools. Such experiments would clarify the scope and robustness of any physical knowledge acquired by the generator.
+    \item \textbf{Pre-processing with Time-Varying Gain (TVG):} As an alternative to physics-informed losses, applying a TVG correction to real radargrams prior to training would equalize the energy profile across domains, reducing the burden on the adversarial objective and potentially improving the reconstruction of fine geometric features such as hyperbolic diffractions. The inverse TVG gain can be reapplied to the model output to restore the original dynamic range.
+    \item \textbf{Alternative Architectures:} Explore network architectures that are better suited to capture global and long-range relationships within the image. Models based on \textit{Transformers}, such as the Vision Transformer (ViT), have demonstrated superior capabilities in modeling global dependencies compared to traditional CNNs and could be integrated within a GAN framework to address this challenge.
+\end{itemize}
+
+\subsection{Improving the Anomaly Detection Pipeline}
+
+The current pipeline, although functional, can be further refined:
+\begin{itemize}
+    \item \textbf{Adaptive Threshold:} Instead of using a global and fixed anomaly threshold, an adaptive threshold method could be implemented. This could vary locally based on image statistics (local mean and standard deviation) or dynamically based on depth, to account for the variation in the signal-to-noise ratio.
+    \item \textbf{Combination of Metrics:} Different difference metrics (L1, L2, SSIM) capture different types of discrepancies. A more robust approach could combine the anomaly maps resulting from multiple metrics, for example through a weighted average or a logical operation (AND/OR), to reduce false positives and increase detection reliability.
+    \item \textbf{Supervised Fine-Tuning via Synthetic Injection:} The Synthetic Anomaly Injection framework developed in this work~(Section~\ref{sec:synthetic_anomaly_injection}) provides a principled source of labelled training data. A natural extension is to exploit these pseudo-labelled pairs to fine-tune a lightweight supervised classifier or segmentation head on top of the residual maps, combining the scalability of the unsupervised pipeline with the discriminative power of supervised learning. The injection procedure also enables controlled ablation of anomaly geometry, depth, and contrast, allowing the model to be stress-tested on the most challenging detection scenarios.
+\end{itemize}
+
+\subsection{Dataset Expansion and Validation}
+The effectiveness of any deep learning model is strictly linked to the quality and variety of the training dataset.
+\begin{itemize}
+    \item \textbf{Enrichment of Simulated Data:} A physics-based simulator such as gprMax~\cite{Warren_2016} could be used to generate an even vaster and more varied dataset, including greater diversity of subsurface materials, anomaly geometries, and noise levels.
+    \item \textbf{Validation on Acquired Real Data:} Final validation of the system should be performed on a curated set of real RS acquisitions containing independently verified subsurface anomalies. Such a benchmark would complement the ROC and Precision-Recall evaluation already conducted on synthetic injections~(Section~\ref{subsec:quantitative_anomaly_detection}), providing ground-truth-based performance estimates under realistic geological conditions and enabling a rigorous comparison with existing manual or semi-automated interpretation workflows.
+\end{itemize}
+
+\subsection{Extension to Future Planetary Missions}
+While this work focused on Martian SHARAD data, the proposed Sim-to-Real anomaly detection framework is inherently instrument-agnostic.
+A highly promising future development involves adapting this pipeline for ongoing and upcoming flagship missions equipped with subsurface radar sounders, such as the ESA JUICE mission (carrying the RIME instrument~\cite{Bruzzone2013RIME}) and the NASA Europa Clipper mission (carrying the REASON instrument~\cite{Blankenship2024REASON}). 
+
+These missions aim to probe the complex icy shells of Jupiter's moons to detect subsurface liquid water oceans, deep ice-rock interfaces, and potential shallow voids or brine pockets.
+Given the extreme bandwidth limitations for data downlink from the Jovian system and the lack of prior geological ground truth, an unsupervised, simulation-backed anomaly detector could serve as a critical triage tool.
+By automatically flagging high-priority structural discontinuities, the framework could assist in prioritizing the downlink of the most scientifically valuable radargrams for expert human analysis.
+
+In summary, the future path branches into four main directions: improving the physical fidelity of generative models, making the post-processing pipeline for anomaly detection smarter, strengthening system validation through larger datasets, and extending the framework to support the next generation of planetary exploration missions.
+

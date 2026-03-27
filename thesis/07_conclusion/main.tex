@@ -1,0 +1,20 @@
+\chapter{Conclusion}
+\label{cha:conclusion}
+This thesis presented a novel, fully unsupervised framework for anomaly detection in planetary Radar Sounder (RS) data, specifically targeting the Martian subsurface as observed by the SHARAD instrument on board Mars Reconnaissance Orbiter (MRO).
+By leveraging a Sim-to-Real translation approach powered by a CycleGAN architecture, the proposed methodology successfully bridged the domain gap between physics-based geometric-optics simulations and highly cluttered real radargrams, enabling the generation of surface-only synthetic radargrams against which real observations can be directly compared to isolate structural anomalies.
+
+The methodological contributions of this work include a robust, memory-efficient data processing pipeline capable of handling large-scale planetary datasets~\ref{sec:experimental_setup}, a CycleGAN-based Sim-to-Real generative model~\ref{sec:comparative_generative_quality}, and a physics-informed Synthetic Anomaly Injection strategy used to quantitatively validate the unsupervised detector in the absence of geological ground truth~\ref{sec:anomaly_detection_application}.
+Ablation studies demonstrated that logarithmic scaling combined with min–max normalization is critical for stabilizing GAN training on high-dynamic-range radar echoes, effectively mitigating the vanishing-gradient issues encountered with standard linear scaling.
+This pre-processing choice proved essential not only for convergence, but also for preserving the relative contrast of subsurface reflectors throughout the translation process.
+
+Experimental results confirmed the superiority of the unpaired CycleGAN model over the paired Pix2Pix baseline for Sim-to-Real translation.
+On the SHARAD test set, CycleGAN achieved a PSNR of 23.02 dB, an LPIPS of 0.104, and a Fréchet Inception Distance (FID) of 1.56, demonstrating its ability to accurately synthesize complex speckle noise and stratigraphic textures that closely match real observations.
+Furthermore, the residual-based anomaly detection pipeline, evaluated on realistically injected dipping-layer anomalies, attained a mean Area Under the ROC Curve (AUC) of 0.671 and a mean Average Precision (mAP) of 0.089, validating the core hypothesis of the thesis: generative models can isolate structural anomalies by failing to reconstruct out-of-distribution features that are absent in the simulation domain.
+
+Despite these encouraging results, the current framework exhibits a residual sensitivity to false positives, particularly in regions of extreme surface roughness or where the forward simulator underestimates off-nadir clutter.
+In such cases, domain mismatches between simulation and reality can produce residuals that are difficult to distinguish from genuine subsurface anomalies.
+Furthermore, analysis of the depth-dependent intensity profiles suggests that the trained model may partially reproduce the physics of signal attenuation, though it remains unclear whether this reflects genuine physical learning or a statistical regularity of the training distribution; this question warrants dedicated investigation in future work.
+Nevertheless, the proposed approach represents a significant and scalable step toward automated, large-scale geological discovery in planetary science, demonstrating that DL-based generative modelling can be meaningfully integrated with physically motivated simulators to support the analysis of RS data.
+
+\input{07_conclusion/01_Future_Developments}
+

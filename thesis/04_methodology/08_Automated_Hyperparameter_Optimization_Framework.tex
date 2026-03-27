@@ -1,0 +1,16 @@
+\section{Automated Hyperparameter Optimization Framework}
+\label{sec:hyperparameter_framework}
+
+Identifying the optimal configuration for a GAN is a complex high-dimensional search problem.
+To address this, an automated optimization infrastructure was integrated into the pipeline (\texttt{scripts/tune\_hyperparameters.py}), leveraging the \textbf{Optuna} framework~\cite{optuna_2019}.
+
+\subsection{Optimization Strategy}
+Instead of relying on inefficient Grid Search or Random Search methods, the framework utilizes a \textbf{Tree-structured Parzen Estimator (TPE)} sampler~\cite{optuna_2019}.
+TPE is a Bayesian optimization algorithm that models the probability density function of the objective metric.
+As the tuning process progresses, TPE learns which regions of the hyperparameter space are most likely to yield improvements, progressively concentrating the search on the most promising configurations.
+
+\subsection{Search Space and Objective Function}
+The optimization is defined over a specific Search Space (e.g., $LR_G \in [10^{-5}, 10^{-3}]$, where $LR_G$ denotes the generator learning rate, $\lambda_{cycle} \in [5, 20]$, where $\lambda_{cycle}$ weights the cycle-consistency loss).
+The \textbf{Objective Function} defined for this study drives the TPE sampler to maximize the \textbf{Structural Similarity Index (SSIM)} on the validation set.
+SSIM was selected as the target metric because, unlike pixel-wise Mean Squared Error, it correlates strongly with the preservation of structural geological features, guiding the search towards models that maintain stratigraphic integrity rather than just minimizing noise variance.
+

@@ -1,0 +1,150 @@
+\section{Generative Adversarial Networks (GANs)}
+\label{sec:gan_theory}
+Generative Adversarial Networks (GANs) \cite{Goodfellow_2014} are a class of generative models in which a neural network is trained to synthesize samples that resemble those drawn from a target data distribution.
+GANs learn the distribution by framing training as a two-player game between a generator, which produces candidate samples, and a discriminator, which attempts to distinguish real samples from generated ones.
+This adversarial formulation has proven particularly effective for high-dimensional image data, where hand-crafted parametric models are often inadequate to capture the full complexity of textures, structures, and noise statistics.
+Before discussing conditional extensions and image-to-image translation frameworks, it is useful to formalize this adversarial interaction as a minimax game between generator and discriminator.
+
+\subsection{The Minimax Game}
+At the core of a GAN there are two neural networks with opposing objectives:
+\begin{itemize}
+    \item \textbf{Generator ($G$):} maps a latent vector $z \sim p_z(z)$ (typically a low-dimensional random variable, e.g., Gaussian or uniform) or a structured input (e.g., an image) to a synthetic sample $G(z)$ in the data space. The goal of $G$ is to produce samples that are indistinguishable from real data drawn from the true data distribution $p_{data}$.
+    \item \textbf{Discriminator ($D$):} maps an input sample $x$, which may originate from either the real data distribution $p_{data}$ or the generator $G$, to a scalar $D(x) \in (0,1)$, interpreted as the probability that $x$ comes from the true data distribution $p_{data}$ rather than from the generator. The goal of $D$ is to correctly classify real versus generated samples.
+\end{itemize}
+
+The training process is formulated as a minimax two-player game with the value function $V(D, G)$ defined as:
+
+\begin{align}
+    &\text{Discriminator Objective:} & \max_D V(D, G) &= \mathbb{E}_{x \sim p_{data}(x)}[\log D(x)] + \mathbb{E}_{z \sim p_z(z)}[\log (1 - D(G(z)))] \\
+    &\text{Generator Objective:} & \min_G V(D, G) &= \mathbb{E}_{z \sim p_z(z)}[\log (1 - D(G(z)))]
+\end{align}
+
+During training, $D$ is updated to maximize $V(D, G)$, i.e., to assign high scores to real samples and low scores to generated samples, while $G$ is updated to minimize $V(D, G)$, i.e., to generate samples that make $D(G(z))$ as large as possible.
+
+In practice, different variants of this objective are often used to improve gradient properties.
+A common choice is the \enquote{non-saturating} generator loss, where $G$ maximizes $\mathbb{E}_{z}[\log D(G(z))]$ instead of minimizing $\mathbb{E}_{z}[\log (1 - D(G(z)))]$, leading to stronger gradients when the discriminator is confident.
+Other GAN variants (e.g., Wasserstein GANs~\cite{Arjovsky2017}, least-squares GANs~\cite{Mao2017}) modify the loss to stabilize training and improve convergence, and are widely adopted in the broader state of the art for image generation.
+
+From a game-theoretic perspective, the ideal solution of this minimax game is a Nash equilibrium, a pair $(G^*, D^*)$ such that neither player can unilaterally improve its objective given the strategy of the other.
+Under suitable assumptions and infinite model capacity, it can be shown that:
+\begin{itemize}
+    \item The optimal discriminator for a fixed generator is
+    \begin{equation}
+    D^*(x) = \frac{p_{data}(x)}{p_{data}(x) + p_g(x)},
+    \end{equation}
+    where $p_g$ is the distribution induced by $G$.
+    \item The global optimum of the game is achieved when $p_g = p_{data}$, i.e., the generator distribution matches the true data distribution and $D^*(x) = 0.5$ for all $x$.
+\end{itemize}
+In this situation, the discriminator cannot distinguish real from generated samples better than random guessing, and the generator produces samples that are statistically indistinguishable from real data.
+In practice, GAN training rarely reaches this ideal equilibrium due to limited model capacity, optimization difficulties, and non-convexity, but the framework provides a powerful conceptual tool for designing generative models for complex data such as radargrams.
+
+\subsection{Image-to-Image Translation}
+The original GAN formulation is \emph{unconditional}: the generator learns to map random noise $z$ to samples that follow the marginal data distribution $p_{data}(x)$, without explicit control over the content of generated outputs.
+In many practical applications, however, we are interested in learning a conditional distribution $p(y \mid x)$: given an input image $x$ (e.g., in our case, a simulated radargram), we wish to generate a corresponding output image $y$ (e.g., a realistic radargram) that preserves the structural content of $x$ while matching the style or statistics of a target domain.
+This task is known as \textbf{image-to-image (I2I) translation}.
+
+Examples of I2I tasks include semantic label map $\rightarrow$ RGB image synthesis (and the inverse mapping, i.e., semantic segmentation), grayscale $\rightarrow$ colorization, low-resolution $\rightarrow$ high-resolution super-resolution, or, in this thesis, simulated RS data $\rightarrow$ real RS data.
+In all these cases, the model must learn a structured mapping $G: X \to Y$ between two image domains, rather than sampling from $p_{data}(y)$ in isolation.
+
+Conditional GANs (cGANs) extend the basic GAN framework to model such conditional distributions.
+Instead of learning $p_g(x)$, a cGAN learns $p_g(y \mid x)$ by conditioning both the generator and the discriminator on the input $x$:
+\begin{itemize}
+    \item The generator $G$ receives $x$ (and optionally noise $z$) and outputs $G(x, z)$, an image in the target domain.
+    \item The discriminator $D$ receives a pair $(x, y)$ and must decide whether $y$ is a real target image paired with $x$, or a generated sample $G(x, z)$.
+\end{itemize}
+The adversarial objective becomes:
+\begin{equation}\label{eq:cgan_objective}
+\mathcal{L}_{cGAN}(G, D) = \mathbb{E}_{x,y}[\log D(x, y)] + \mathbb{E}_{x,z}[\log (1 - D(x, G(x, z)))].
+\end{equation}
+
+Compared to the unconditional GAN objective, the discriminator now evaluates consistency between input and output, rather than realism of the output alone.
+This encourages the generator to produce images that are not only visually plausible in isolation, but also semantically aligned with the conditioning input.
+In practice, cGANs are often combined with additional reconstruction losses (e.g., $\ell_1$ or $\ell_2$ between $G(x)$ and $y$) to further enforce fidelity to the input structure, as done in Pix2Pix and in the supervised Sim-to-Real translation experiments of this thesis.
+
+\subsection{Conditional GANs (cGANs)}
+\label{subsec:c_gan}
+
+
+In this formulation, the discriminator receives input–output pairs and learns to distinguish real pairs $(x, y)$ from synthetic pairs $(x, G(x, z))$.
+The generator, in turn, is encouraged to produce outputs that are both realistic and appropriately matched to the inputs.
+
+Pix2Pix~\cite{Isola_2017} is a canonical example of a cGAN-based I2I translation model.
+It combines the adversarial loss $\mathcal{L}_{cGAN}$ with an $\ell_1$ reconstruction loss
+\begin{equation}
+\mathcal{L}_{\ell_1}(G) = \mathbb{E}_{x,y}\left[ \| y - G(x) \|_1 \right],
+\end{equation}
+yielding the overall objective
+\begin{equation}
+\min_G \max_D \ \mathcal{L}_{cGAN}(G, D) + \lambda \mathcal{L}_{\ell_1}(G),
+\end{equation}
+where $\lambda$ balances perceptual realism against faithfulness to the ground truth.
+In this thesis, Pix2Pix is used as a supervised baseline to translate simulated RS radargrams into the domain of real SHARAD observations, exploiting the availability of paired examples over Elysium Planitia.
+
+\subsection{CycleGAN}
+\label{subsec:cyclegan}
+For many applications, including planetary RS, paired training data $(x, y)$ are scarce or unavailable: we may have a set of simulated images $X$ and a separate set of real images $Y$, but no one-to-one correspondence between them.
+CycleGAN~\cite{Zhu_2017} addresses this setting by learning two mappings $G: X \to Y$ and $F: Y \to X$ together with two discriminators $D_Y$ and $D_X$:
+\begin{itemize}
+    \item $D_Y$ distinguishes real images $y \in Y$ from translated images $G(x)$.
+    \item $D_X$ distinguishes real images $x \in X$ from translated images $F(y)$.
+\end{itemize}
+Adversarial losses are defined in each domain, encouraging $G$ and $F$ to produce samples that are indistinguishable from real images in $Y$ and $X$, respectively.
+To avoid arbitrary mappings that ignore the input content, CycleGAN introduces the \textbf{cycle-consistency loss}:
+\begin{equation}
+\mathcal{L}_{cyc}(G, F) = \mathbb{E}_{x \sim X}\left[ \| F(G(x)) - x \|_1 \right] + \mathbb{E}_{y \sim Y}\left[ \| G(F(y)) - y \|_1 \right].
+\end{equation}
+This loss enforces that translating an image from one domain to the other and back again should approximately recover the original, thereby preserving structural information.
+
+The full CycleGAN objective combines adversarial and cycle-consistency terms, and optionally additional regularizers (e.g., identity loss).
+In this thesis, CycleGAN is used to perform unpaired Sim-to-Real translation between simulated and real RS radargrams, enabling the generator to learn the statistics of clutter and noise in the real domain without requiring perfectly aligned simulation–observation pairs.
+
+\subsection{Challenges in Training}
+\label{subsec:gan_challenges}
+GAN training is notoriously unstable due to the non-convex, high-dimensional optimization landscape and the competing objectives of the two networks.
+Several failure modes are commonly observed, particularly when training on complex data such as radargrams.
+Below we describe the main challenges and established mitigation strategies.
+
+\begin{itemize}
+    \item \textbf{Mode Collapse:} The generator collapses to producing only a limited subset of the data distribution (e.g., a single \enquote{average} radargram texture), fooling the discriminator but failing to capture the full diversity of clutter patterns, stratigraphy, and noise statistics in RS data. This is particularly problematic for high-dimensional images where the generator can easily overfit to the most salient samples.
+
+    Possible mitigation techniques are:
+    \begin{itemize}
+        \item \textbf{Spectral normalization} or \textbf{gradient penalty} on the discriminator to enforce Lipschitz continuity and prevent it from becoming too powerful.
+        \item \textbf{Mini-batch discrimination} using statistics (e.g., variance) rather than per-sample classification.
+        \item \textbf{Unrolled GANs} or \textbf{progressive growing}, where the discriminator is trained for multiple steps per generator update.
+        \item \textbf{Auxiliary losses} such as feature matching, where the generator is encouraged to match intermediate features of the discriminator rather than its final output.
+    \end{itemize}
+
+    \item \textbf{Vanishing Gradients:} When the discriminator becomes too confident ($D(G(z)) \approx 0$), the generator receives vanishingly small gradients from the standard loss $\log(1 - D(G(z)))$, halting learning.
+
+    Possible mitigation techniques are:
+    \begin{itemize}
+        \item \textbf{Non-saturating loss} for the generator: maximize $\log D(G(z))$ instead of minimizing $\log(1 - D(G(z)))$.
+        \item \textbf{Label smoothing}, where real samples are assigned soft labels (e.g., $D(x) = 0.9$ instead of $1.0$) to prevent overconfidence.
+        \item \textbf{Noise injection} in the discriminator input or \textbf{dropout} to maintain gradient flow.
+    \end{itemize}
+
+    \item \textbf{Training Imbalance:} The discriminator can overpower the generator early in training, or vice versa, leading to oscillations or collapse.
+
+    Possible mitigation techniques are:
+    \begin{itemize}
+        \item \textbf{Adaptive training schedules}: update the weaker network more frequently or use heuristics to pause the stronger one.
+        \item \textbf{Wasserstein GANs (WGAN)} \cite{Arjovsky2017}, which replace the Jensen–Shannon divergence with the Wasserstein distance and enforce $1$-Lipschitz continuity via gradient penalty.
+        \item \textbf{Two-timescale update rule (TTUR)} \cite{Heusel2017}, where the generator and discriminator have different learning rates and optimizers.
+    \end{itemize}
+
+    \item \textbf{Representation Collapse:} The generator learns a representation that is statistically similar to the data but lacks fine semantic details (e.g., blurry radargrams that match average speckle statistics but fail to preserve reflector geometry).
+
+    Possible mitigation techniques are:
+    \begin{itemize}
+        \item \textbf{Perceptual losses} such as LPIPS or feature matching.
+        \item \textbf{Multi-scale discriminators} that operate at different resolutions.
+        \item \textbf{Progressive growing of GANs (ProGAN)} \cite{Karras2018}, where the model is trained progressively from low to high resolution.
+    \end{itemize}
+\end{itemize}
+
+In this thesis, we adopt a combination of Instance Normalization (in the discriminator), Least Squares loss (LSGAN) (for the generator), Label Smoothing, and mixed precision training to stabilize GAN training on RS data.
+While more advanced techniques (e.g., WGAN-GP or Spectral Normalization) could be explored in future work, this baseline setup yields robust convergence for both Pix2Pix and CycleGAN on the SHARAD dataset.
+
+A detailed discussion of the evaluation metrics used to assess generative quality in the experimental section of this thesis, including pixel-wise (PSNR, SSIM), perceptual (LPIPS), and domain-specific measures, is provided in Section~\ref{subsec:evaluation_metrics}.
+

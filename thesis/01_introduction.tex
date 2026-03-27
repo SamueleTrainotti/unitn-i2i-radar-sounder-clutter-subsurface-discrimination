@@ -1,0 +1,60 @@
+\chapter{Introduction}
+\label{cha:intro}
+Subsurface exploration of planetary bodies using orbiting radar sounders has become a central component of modern planetary geoscience, enabling the detection of buried interfaces, stratified deposits, and potential volatile reservoirs over global spatial scales.
+By transmitting low-frequency radio pulses and recording the time-delayed echoes, these instruments acquire radargrams that represent the dielectric structure of the shallow subsurface along the spacecraft ground track.
+Over the last two decades, orbital Radar Sounders such as MARSIS and SHARAD have revealed the internal layering of the Martian polar caps, mapped buried impact basins and volcanic units, and provided evidence for extensive ice-rich deposits and possible basal liquid water in selected regions.
+Similar instruments have been deployed or are being prepared for terrestrial ice sheets and icy moons, underscoring the central role of radar sounding in comparative planetology.
+The scientific return of such observations is, however, limited by the complexity of the acquired signals: propagation losses, surface and volume scattering, and multiple sources of noise can severely degrade the visibility of geologically meaningful reflectors.
+
+In practice, the interpretation of planetary radargrams requires the analysis of the radar data and the geological context of the acquisition (e.g., regional topography that predict off-nadir surface echoes based on Digital Elevation Models), since off-nadir surface echoes and complex propagation effects can produce signatures that are difficult to distinguish from genuine subsurface interfaces.
+To support this interpretation, numerical simulations of radar propagation and surface clutter—based on geometric optics or, in more specialized cases, full-wave solvers—are routinely used to identify echoes that can be explained by topography alone and to design observation strategies.
+Such simulations thus play an important role in supporting data analysis and mission planning, rather than providing a complete solution to the inversion problem.
+
+\paragraph{Specific Challenges of RS Data.}
+Radar Sounder data are affected by several physical and instrumental effects, including attenuation with depth, speckle noise, surface clutter, and various environmental noise sources.
+These mechanisms  limit the visibility of  subsurface interfaces and make the automatic analysis of radargrams more challenging than that of natural images.
+A detailed discussion of these effects and the associated challenges is provided in Section~\ref{sec:rs_challenges}, where we introduce the main data characteristics that any data-driven method must implicitly or explicitly handle.
+
+\paragraph{Data Volume and Scalability in Planetary Sciences.}
+\label{sec:data_challenges}
+Current planetary exploration is characterized by a substantial increase in the volume of data transmitted to Earth.
+This growth is driven both by new generations of high-resolution instruments and by the long-term operation of existing platforms, which continue to acquire data over decades.
+Missions such as the MRO \cite{Zurek_2007}, utilizing a suite of high-resolution instruments, have accumulated tens of terabytes of data (exceeding 400 TB as of 2023).
+Notably, the SHARAD instrument \cite{Seu_2007}, on board the MRO mission, has produced a data volume on the order of several terabytes of radar sounding observations (about 15\% of the mission’s 34–50~TB total science return), providing extensive coverage of the Martian lithosphere.
+
+Looking ahead, this trend is expected to intensify with the arrival of new orbital Radar Sounder missions.
+Instruments such as RIME on board JUICE, SRS on EnVision, and REASON on Europa Clipper will acquire long-duration sounding datasets over icy moons and Venus, further increasing both the volume and the diversity of radar observations to be processed and interpreted.
+
+This abundance of information presents a significant analytical bottleneck: the capacity for manual interpretation does not scale with data acquisition rates.
+Manual analysis of radargrams is a time-intensive process requiring specialized geophysical expertise.
+Consequently, a vast portion of the acquired data remains unexamined.
+The automation of this workflow through automatic statistical methods and Artificial Intelligence (AI) techniques is therefore not merely a technological enhancement, but a scientific requisite to fully maximize the yield of these datasets.
+
+\paragraph{Deep Learning Applied to RS Data.}
+\label{sec:intro_dl_rs}
+In this thesis, Deep Learning (DL) is employed with a specific scientific objective: to assist in the discrimination between surface-related clutter and genuine subsurface reflections in orbital RS observations, providing a data-driven tool to highlight subsurface features that would be extremely difficult to identify through manual inspection alone.
+
+The recent success of DL in computer vision and remote sensing has motivated its application to Radar Sounder data for tasks such as denoising, automatic layer tracking, and clutter mitigation.
+Building on these advances, we frame our contribution within a generative Sim-to-Real perspective, explicitly targeting the joint modelling of clutter, noise, and subsurface structure
+Rather than directly training a classifier on handcrafted labels, which would be hard to obtain at scale and are often affected by geological uncertainty, we follow a generative approach in which a model learns to synthesize realistic radargrams from simplified surface-only simulations, and discrepancies between real and synthesized data are interpreted as potential anomalies associated with candidate subsurface features.
+
+Within this framework, Generative Adversarial Networks (GANs)\cite{Goodfellow_2014} are used to implement Sim-to-Real image-to-image translation between simulated and real RS domains.
+The main assumption of our methodology is that a generator trained to reproduce the statistical properties of \enquote{normal} clutter and instrument noise will fail to reconstruct unexpected subsurface features, making them stand out in the residual domain.
+Two reference architectures are considered: \textbf{Pix2Pix}\cite{Isola_2017}, which performs supervised translation using paired simulated–real radargrams, and \textbf{CycleGAN}\cite{Zhu_2017}, which performs unpaired translation by enforcing cycle-consistency between the two domains.
+In both cases, the architectures are adapted and configured specifically for the RS problem, so that the generators and discriminators explicitly account for radar-specific statistics (e.g., depth-dependent attenuation, speckle, and clutter morphologies) rather than being used as generic computer-vision backbones.
+These models are not an end in themselves, but form the core of a larger pipeline aimed at clutter–subsurface discrimination via residual analysis.
+
+\paragraph{Evaluation of GAN Models for Radargram Generation.}
+\label{sec:problem}
+While recent studies have demonstrated the potential of Deep Learning for tasks such as denoising,  tracking, and clutter mitigation in Radar Sounder data, comparatively little attention has been devoted to the use of generative models for synthesizing full radargrams that jointly capture clutter and subsurface structure.
+In particular, the impact of different image-to-image translation paradigms (paired versus unpaired training) on the realism of simulated radargrams and on the performance of downstream anomaly detection pipelines remains insufficiently explored.
+
+By establishing a robust experimental protocol and selecting appropriate evaluation metrics---ranging from perceptual image quality (SSIM \cite{Wang_2004}, PSNR, LPIPS \cite{Zhang_2018_CVPR}) to computational efficiency (inference latency, model parameter count)---this thesis aims to assess the effectiveness and reliability of modern GAN architectures within this specialized scientific domain.
+
+The rest of this thesis is organized as follows.
+Section~\ref{cha:preliminaries} provides the theoretical foundations of planetary radar sounding and deep generative models.
+Section~\ref{cha:soa} reviews the state of the art in deep learning applications to planetary science and radar sounder data analysis.
+Section~\ref{cha:methodology} details the proposed Sim-to-Real image translation pipeline, including data engineering, model architectures, and the anomaly detection framework.
+Section~\ref{cha:results} presents the experimental results, including comparative generative quality, sensitivity analyses, and quantitative anomaly detection performance.
+Finally, Section~\ref{cha:conclusion} discusses the implications of these findings and outlines directions for future research.
+

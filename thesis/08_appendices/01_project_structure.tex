@@ -1,0 +1,38 @@
+\chapter{Codebase Directory Structure}
+\label{app:codebase}
+The custom PyTorch framework developed for this thesis follows a modular object-oriented design.
+Below is the tree structure highlighting the primary execution scripts, configuration files, and package modules referenced throughout the methodology.
+
+\vspace{1em}
+\dirtree{%
+.1 project\_root/\DTcomment{Root directory of the repository}.
+.2 Dockerfile\DTcomment{Containerization environment setup}.
+.2 pyproject.toml\DTcomment{Project dependencies and metadata}.
+.2 scripts/\DTcomment{Execution scripts for training and evaluation}.
+.3 train.py\DTcomment{Main training loop}.
+.3 test.py\DTcomment{Model testing and evaluation pipeline}.
+.3 detect\_anomalies.py\DTcomment{Inference script for anomaly generation}.
+.3 tune\_hyperparameters.py\DTcomment{Optuna hyperparameter optimization}.
+.3 config\_files/\DTcomment{YAML configuration files}.
+.4 config.yaml\DTcomment{Base configurations}.
+.4 experiments.yaml\DTcomment{Specific experiment definitions}.
+.2 src/\DTcomment{Core Python package}.
+.3 core/\DTcomment{Core utilities and pipeline managers}.
+.4 anomaly\_detector.py\DTcomment{Anomaly scoring and detection logic}.
+.4 pipelines.py\DTcomment{End-to-end execution pipelines}.
+.4 run\_manager.py\DTcomment{Experiment tracking and logging}.
+.3 dataset/\DTcomment{Data loading and processing}.
+.4 mapdataset.py\DTcomment{Resource-constrained data loading}.
+.4 caching.py\DTcomment{Disk caching and LRU management}.
+.4 processing.py\DTcomment{Data normalization and patch extraction}.
+.3 models/\DTcomment{Generative adversarial architectures}.
+.4 cyclegan.py\DTcomment{CycleGAN implementation}.
+.4 pix2pix.py\DTcomment{Pix2Pix implementation}.
+.4 architectures/\DTcomment{Neural network building blocks}.
+.5 patchgan.py\DTcomment{PatchGAN discriminator network}.
+.5 resnet\_generator.py\DTcomment{ResNet-based generator}.
+.5 unet\_generator.py\DTcomment{U-Net based generator}.
+.2 notebooks/\DTcomment{Exploratory data analysis (Jupyter)}.
+.3 read\_datagram.ipynb.
+.2 diagrams/\DTcomment{System architecture and flowcharts (Mermaid)}.
+}

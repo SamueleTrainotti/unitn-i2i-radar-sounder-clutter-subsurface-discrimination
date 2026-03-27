@@ -1,0 +1,35 @@
+\chapter{Methodology}
+\label{cha:methodology}
+To ensure consistency throughout the description of the methodology, we define the domains and the variables involved in the image-to-image translation and anomaly detection pipeline:
+\begin{itemize}
+    \item $\mathcal{X}_{sim}$: The domain of \textbf{simulated radargrams}, derived purely from surface topography. A single simulated observation is denoted as $x_{sim} \in \mathcal{X}_{sim}$.
+    \item $\mathcal{X}_{real}$: The domain of \textbf{real SHARAD radargrams}, containing surface clutter, thermal noise, and potential subsurface reflectors. A single real observation is denoted as $x_{real} \in \mathcal{X}_{real}$.
+    \item $G$: The primary \textbf{Generator} network, parameterized to map the simulated domain to the real domain, $G: \mathcal{X}_{sim} \rightarrow \mathcal{X}_{real}$.
+    \item $x_{gen}$: The \textbf{generated background} (or synthetic radargram), produced by the generator from a simulation, such that $x_{gen} = G(x_{sim})$.
+    \item $\mathcal{M}$: The resulting \textbf{anomaly map} obtained by comparing the generated baseline $x_{gen}$ with the corresponding real observation $x_{real}$ using a distance metric $\mathcal{D}$.
+\end{itemize}
+
+The challenge addressed in this thesis is the discrimination of genuine subsurface geological interfaces from surface clutter and noise in radargrams.
+Due to the absence of ground truth labels for subsurface anomalies and the extreme difficulty of obtaining them through in-situ validation, traditional supervised approaches are infeasible.
+Instead, we propose an unsupervised anomaly detection framework based on Simulation-to-Real (Sim-to-Real) image-to-image translation.
+
+We train a generative model to translate geometric-optics simulations (containing surface clutter only) into realistic SHARAD radargrams.
+This model will systematically fail to reconstruct genuine subsurface reflectors, as these are absent from the simulation domain.
+These reconstruction failures manifest as statistically significant residuals in the difference between real observations and model-generated backgrounds, enabling the detection of subsurface anomalies without requiring labeled training data.
+
+This chapter details the complete pipeline implementing this approach.
+We first describe the system architecture and data engineering enabling scalable processing of SHARAD datasets (Section~\ref{sec:data_acquisition}).
+Sections~\ref{sec:preprocessing_patching}--\ref{sec:modular_implementation} then present data pre-processing, patch extraction, and the design of the generative architectures.
+Finally, Section~\ref{sec:anomaly_detection_methodology} describes the residual-based anomaly detection pipeline and the synthetic anomaly injection protocol used for quantitative evaluation.
+
+\input{04_methodology/01_System_Architecture_and_Data_Engineering}
+\input{04_methodology/02_The_Dataset_MRO_SHARAD_Radar_Data}
+\input{04_methodology/03_Data_Pre-processing_and_Patch_Extraction_Strategy}
+\input{04_methodology/04_Resource-Constrained_Data_Loading}
+\input{04_methodology/05_Modular_Neural_Network_Implementation}
+\input{04_methodology/06_Advanced_Training_Monitoring_and_Visualization}
+\input{04_methodology/07_Environment_Isolation_and_Reproducibility}
+\input{04_methodology/08_Automated_Hyperparameter_Optimization_Framework}
+\input{04_methodology/09_Anomaly_Detection_Methodology}
+\input{04_methodology/10_Synthetic_Anomaly_Injection_Strategy}
+\input{04_methodology/11_Conclusion}

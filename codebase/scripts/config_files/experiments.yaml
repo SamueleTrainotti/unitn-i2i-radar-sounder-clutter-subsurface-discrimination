@@ -1,0 +1,186 @@
+# General configuration for the experiment runner
+runner_config:
+  # The base path for all output from this experiment run.
+  output_base_dir: "/media/datapart/samueletrainotti/data/anomaly_detection_runs/"
+  # The script will only process the image at this index from the dataset.
+  #sample_indices_to_compare: [16,19,23,24,25,36,37,38,43,45,46,56,61]
+  # test samples
+  # sample_indices_to_compare: [1, 2, 3, 4, 6, 9, 10, 16, 19, 33, 35, 42, 44, 47, 59, 68]
+  # Base config file to be used for all experiments
+  base_config_path: 'scripts/config_files/detection_config.yaml'
+
+# This file defines the grid of experiments to be executed by run_experiments.py.
+# Each item in the list represents one experiment.
+# - 'name': A unique identifier used for the output folder.
+# - 'params': A dictionary of configuration overrides that will be applied to the base detection config.
+experiments:
+# -------------------------------------------------------------------------
+  # GROUP 1: BASELINES
+  # Reference points to understand raw data noise and Z-score impact.
+  # -------------------------------------------------------------------------
+  - name: "00_baseline_raw"
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: false}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "01_baseline_zscore"
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: true} # Essential for threshold comparison
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: {ENABLED: false}
+
+  # -------------------------------------------------------------------------
+  # GROUP 2: DENOISING STRATEGIES (Blur vs Median)
+  # Comparing Gaussian Blur (smudging) vs Median Filter (despeckling).
+  # -------------------------------------------------------------------------
+  - name: "02_gaussian_blur_0.5"
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: 
+          ENABLED: true
+          SIGMA: 0.5
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "03_gaussian_blur_1.0"
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: 
+          ENABLED: true
+          SIGMA: 1.0
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "04_gaussian_blur_1.5"
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: 
+          ENABLED: true
+          SIGMA: 1.5
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "05_median_filter_k3"
+    # Conservative median filter. Removes salt-and-pepper noise, keeps edges.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: 
+          ENABLED: true
+          KERNEL_SIZE: 3
+
+  - name: "06_median_filter_k5"
+    # Aggressive median filter. Good if the image is extremely noisy.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: {METHOD: "none"}
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: 
+          ENABLED: true
+          KERNEL_SIZE: 5
+
+  # -------------------------------------------------------------------------
+  # GROUP 3: BACKGROUND REMOVAL (PCA Sensitivity)
+  # PCA_COMPONENTS = Number of components KEPT to estimate the background.
+  # -------------------------------------------------------------------------
+  - name: "07_pca_aggressive_keep_3"
+    # Keeps only the top 3 strongest components (e.g., surface reflection) as background.
+    # Subtracting this leaves most data intact.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: 
+          METHOD: "pca"
+          PCA_COMPONENTS: 3
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "08_pca_standard_keep_5"
+    # Keeps top 5 components. Standard approach to remove layers.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: 
+          METHOD: "pca"
+          PCA_COMPONENTS: 5
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "09_pca_conservative_keep_10"
+    # Keeps top 10 components. The estimated background is very detailed.
+    # Subtracting this might remove the anomaly if it's not distinct enough.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: 
+          METHOD: "pca"
+          PCA_COMPONENTS: 10
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: {ENABLED: false}
+
+  # -------------------------------------------------------------------------
+  # GROUP 4: COMBINATIONS (Best Candidates)
+  # Combining Denoising + Background Removal + Z-Score.
+  # -------------------------------------------------------------------------
+  - name: "10_combo_median3_pca8"
+    # Balanced approach: Clear speckle noise, remove main layers.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: 
+          METHOD: "pca"
+          PCA_COMPONENTS: 8
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: 
+          ENABLED: true
+          KERNEL_SIZE: 3
+
+  - name: "11_combo_gaussian1_pca5"
+    # Classic approach: Soften noise, remove more background context.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: 
+          METHOD: "pca"
+          PCA_COMPONENTS: 5
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: 
+          ENABLED: true
+          SIGMA: 1.0
+        MEDIAN_FILTER: {ENABLED: false}
+
+  - name: "12_combo_heavy_processing"
+    # Heavy cleanup: Strong median filter + remove detailed background.
+    params:
+      ANOMALY_DETECTION:
+        TVG: {ENABLED: false}
+        BACKGROUND_REMOVAL: 
+          METHOD: "pca"
+          PCA_COMPONENTS: 5
+        Z_SCORE_NORMALIZATION: {ENABLED: true}
+        GAUSSIAN_BLUR: {ENABLED: false}
+        MEDIAN_FILTER: 
+          ENABLED: true
+          KERNEL_SIZE: 5

@@ -1,0 +1,32 @@
+\section{Experimental Setup}
+\label{sec:experimental_setup_chap5}
+
+The training of Generative Adversarial Networks (GANs) is a computationally intensive procedure that requires a robust hardware infrastructure and a reproducible software environment.
+A hybrid development strategy was adopted to balance agility during debugging and raw performance during training.
+
+\subsection{Hybrid Hardware Environment}
+ The project utilized two distinct hardware environments:
+ \begin{itemize}
+     \item \textbf{Local Development Workstation:} Initial prototyping, code debugging, and visualization tests were conducted on a local Windows machine equipped with an NVIDIA RTX GPU. This environment allowed for rapid interaction with the code and immediate visual feedback on small data batches.
+     \item \textbf{HPC Cluster (Remote Sensing Lab):} For the full-scale training on the complete dataset (thousands of patches), the workload was offloaded to the High-Performance Computing (HPC) cluster of the Remote Sensing Laboratory (University of Trento). These nodes provided the necessary VRAM and compute throughput to train the models for hundreds of epochs without interruption.
+ \end{itemize}
+
+\subsection{Reproducibility via Docker}
+Ensuring consistent behavior across a Windows-based local machine and a Linux-based HPC cluster is a significant engineering challenge.
+To address this, the entire training pipeline was containerized using \textbf{Docker}.
+
+The environment is defined by a \texttt{Dockerfile} (based on the NVIDIA PyTorch base image \texttt{nvcr.io/nvidia/pytorch:24.06-py3}) which ensures that:
+\begin{enumerate}
+    \item \textbf{Dependency Versioning:} All Python libraries (PyTorch 2.4, NumPy, Optuna) are pinned to specific versions, preventing \enquote{works on my machine} issues caused by library updates.
+    \item \textbf{System Libraries:} System-level dependencies (like \texttt{libgl1} for OpenCV) are installed automatically.
+    \item \textbf{User Permissions:} The container handles user ID mapping (\texttt{ARG USERID}) to ensure that files created inside the container are owned by the host user, simplifying data management on shared cluster storage.
+\end{enumerate}
+
+\subsection{Evaluation Metrics}
+To objectively quantify the performance of the models, we rely on the specific computer vision metrics established in the Methodology:
+\begin{itemize}
+    \item \textbf{SSIM (Structural Similarity Index) \cite{Wang_2004}:} Used to measure the preservation of geological layering.
+    \item \textbf{PSNR (Peak Signal-to-Noise Ratio):} Used to assess the noise levels in the reconstruction.
+    \item \textbf{LPIPS (Learned Perceptual Image Patch Similarity) \cite{Zhang_2018_CVPR}:} Used to evaluate the perceptual realism of the generated textures.
+\end{itemize}
+

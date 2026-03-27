@@ -1,0 +1,14 @@
+\section{Environment Isolation and Reproducibility}
+\label{sec:reproducibility}
+
+A defining characteristic of scientific software is reproducibility.
+Deep learning experiments are notoriously sensitive to variations in the software stack, where differences in library versions or CUDA drivers can lead to non-deterministic numerical divergences.
+To mitigate this, the entire training pipeline is containerized using \textbf{Docker}.
+
+\subsection{Containerization Strategy}
+The experimental environment is strictly defined via a \texttt{Dockerfile} that builds upon the official NVIDIA PyTorch image (\texttt{nvcr.io/nvidia/pytorch:24.06-py3})~\cite{nvidia_pytorch_docker}.
+This base image provides a validated stack of low-level dependencies, including the CUDA Toolkit, cuDNN primitives, and NCCL communication libraries, optimized for the underlying GPU hardware.
+
+By encapsulating the project dependencies (including specific versions of \texttt{PyTorch 2.4.0}, \texttt{Optuna}, and scientific libraries like \texttt{scikit-image}) within an immutable image, we guarantee that the code executes in an identical software context whether it is running on a local Windows development workstation or on a distributed Linux HPC cluster.
+This approach elevates the project from a set of experimental scripts to deployable scientific software, ensuring that any researcher can replicate the exact experimental conditions by simply building the container.
+

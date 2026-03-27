@@ -1,0 +1,21 @@
+\chapter*{Abstract} % no number
+\label{abtract}
+\addcontentsline{toc}{chapter}{Abstract} % add to index
+
+Planetary Radar Sounders are key instruments for probing the shallow subsurface of planetary bodies, providing radargrams that encode information on layering, dielectric contrasts, and potential volatile-rich deposits.
+However, the interpretation of these data is complicated by propagation losses, surface clutter, and multiple sources of noise, which can mask or mimic genuine subsurface interfaces.
+At the same time, the lack of annotated ground truth for Martian subsurface anomalies (e.g., buried ice, complex stratigraphy) limits the applicability of supervised Deep Learning techniques for automated analysis.
+
+This thesis proposes a novel, fully unsupervised framework for anomaly detection in planetary Radar Sounder data based on Simulation-to-Real (Sim-to-Real) domain translation.
+Geometric-optics simulations, which provide an idealized approximation of the radar returns from the Martian surface, are translated into realistic radargrams using an unpaired CycleGAN architecture trained on SHARAD observations over Elysium Planitia.
+The central hypothesis is that a generative model trained exclusively to reproduce the surface return and clutter will systematically fail to reconstruct out-of-distribution geological anomalies, which can then be isolated in the residual difference between real radargrams and their simulated \enquote{background} reconstructions.
+These anomalies generally correspond to subsurface echoes that are not predicted by the geometric-optics simulations, such as buried dielectric interfaces, dipping reflectors, or potential ice-rich deposits, and therefore appear as statistically significant residuals in the difference domain.
+
+From a methodological perspective, the work introduces a logarithmic normalization, which alleviates gradient-vanishing issues and stabilizes GAN training.
+In addition, a memory-efficient data processing pipeline is developed to handle the large volume of SHARAD data used for training and evaluation.
+Two architectures are considered for Sim-to-Real translation: a paired Pix2Pix baseline and an unpaired CycleGAN, both evaluated with pixel-wise (PSNR, SSIM) and perceptual (LPIPS, Fréchet Inception Distance, FID) metrics within a dedicated comparison framework.
+
+Experimental results show that the proposed CycleGAN significantly outperforms the Pix2Pix baseline in synthesizing the complex speckle noise and high-frequency textures of real SHARAD radargrams, achieving a PSNR of 23.02 dB, an LPIPS of 0.104, and a FID of 1.56 on the test set.
+To quantitatively assess anomaly detection performance in the absence of real labeled anomalies, a physics-informed Synthetic Anomaly Injection protocol is introduced, in which realistic dipping-layer reflectors with depth-dependent attenuation are embedded into real radargrams.
+Using this protocol, the residual-based detection pipeline attains a mean Area Under the ROC Curve (AUC) of 0.671 and a mean Average Precision (mAP) of 0.089, indicating that the learned Sim-to-Real framework can effectively highlight out-of-distribution subsurface structures in deeply cluttered RS observations, while also revealing the limitations imposed by surface roughness and simulator inaccuracies.
+

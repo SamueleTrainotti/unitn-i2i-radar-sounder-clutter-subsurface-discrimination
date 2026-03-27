@@ -1,0 +1,46 @@
+\section{Synthetic Anomaly Injection Strategy}
+\label{sec:synthetic_anomaly_injection}
+Validating the performance of an anomaly detection system in a planetary exploration context presents a unique challenge: the absence of a comprehensive \enquote{Ground Truth}.
+Unlike industrial inspection tasks where defects are known and labeled, the real Martian subsurface contains an unknown number of potential anomalies (indices of ice, voids, or distinctive stratigraphy), making it hard to calculate standard precision and recall metrics on real data alone.
+
+To rigorously quantify the detector's discriminatory power, we developed a \textbf{Synthetic Anomaly Injection Strategy}.
+This methodology relies on the controlled introduction of artificial, physically plausible perturbations into real observation samples ($x_{real}$).
+
+The injection process is modeled as a transformation $T(x_{real})$ applied to real radargrams.
+The procedure follows four physical constraints to simulate realistic \textbf{Dipping Layers} (inclined stratigraphic interfaces), which are common in regions like the North Polar Layered Deposits (NPLD):
+
+\begin{enumerate}
+    \item \textbf{Surface-Relative Positioning:} To mimic a subsurface layer, the anomaly's depth $d(x)$ is defined relative to the detected surface horizon $y_{surf}(x)$. For a column $x$, the anomaly position is:
+    $$y_{anom}(x) = y_{surf}(x) + \delta_{start} + m \cdot (x - x_{start})$$
+    where $\delta_{start}$ is a random initial depth offset and $m$ is the slope of the layer ($m \in [-0.5, 0.5]$).
+    \item \textbf{Physical Attenuation Modeling:} Radar signals attenuate as they propagate through the crust. We model the intensity of the injected anomaly $I_{anom}$ not as a constant value, but as a fraction of the local surface power $I_{surf}$, reduced by an attenuation factor $\alpha$:
+    $$I_{anom}(x) = I_{surf}(x) - \alpha$$
+    where $\alpha \sim U(0.2, 0.6)$ ensures the anomaly is visible but not blatantly artificial, challenging the detector to distinguish it from background noise.
+    \item \textbf{Stochastic Texture (Speckle):} A solid line would be trivial to detect and physically unrealistic. We inject a granular texture by adding Gaussian noise $\eta \sim \mathcal{N}(0, 0.1)$ to the layer intensity, simulating the constructive and destructive interference typical of coherent radar systems.
+    \item \textbf{Constructive Interference Merging:} The anomaly is merged with the original observation $x_{real}$ using a maximum-power operator, simulating the dominance of the strongest reflector in a resolution cell:
+    $$ x_{injected}(i, j) = \max(x_{real}(i, j), I_{anom}(i, j) \cdot M_{GT}(i, j)) $$
+\end{enumerate}
+
+Simultaneously with the injection, we generate a pixel-perfect binary mask $M_{GT}$, where $M_{GT}(i,j)=1$ if the pixel $(i,j)$ was modified, and 0 otherwise.
+These \enquote{corrupted} real observations ($x_{injected}$) are then passed through the standard detection pipeline: they are compared against the generator's reconstruction of the corresponding pristine simulation ($x_{gen} = G(x_{sim})$), and the residual map $\mathcal{M}$ is computed.
+By comparing the calculated anomaly score map $\mathcal{M}$ against the binary $M_{GT}$, we can perform a quantitative Receiver Operating Characteristic (ROC) analysis.
+
+\subsection{Automated Evaluation Protocol}
+\label{subsec:auto_eval_protocol}
+To rigorously quantify the detector's capabilities without relying on manual inspection, we developed an automated evaluation protocol (implemented in \texttt{scripts/evaluate\_anomalies.py}).
+This script executes the following pipeline on a held-out test set (which, as will be detailed in Section~\ref{subsec:roi_selection}, complements the manually curated real observations with this synthetically corrupted dataset):
+
+\begin{enumerate}
+    \item \textbf{Dynamic Injection:} For each test sample, a synthetic anomaly (e.g., a dipping layer) is injected into the real observation $x_{real}$ with randomized parameters (depth, slope, attenuation), producing an altered radargram denoted as $x_{injected}$.
+    \item \textbf{Reconstruction \& Residuals:} The generator reconstructs the \enquote{background-only} estimate $x_{gen} = G(x_{sim})$ \textbf{from the simulated} radargram $x_{sim}$, and the absolute difference anomaly map $\mathcal{M} = | x_{injected} - x_{gen} |$ is computed.
+    \item \textbf{Metric Aggregation:} The pixel-level anomaly scores from $\mathcal{M}$ are compared against the ground-truth binary mask $M_{GT}$ of the injected anomaly.
+\end{enumerate}
+
+We utilize standard information retrieval metrics, based on Receiver Operating Characteristic (ROC) and Precision-Recall (PR) analyses, to benchmark the detector's sensitivity:
+\begin{itemize}
+    \item \textbf{Area Under the ROC Curve (AUC):} A threshold-independent measure of the detector's probability to rank a randomly chosen anomalous pixel higher than a background pixel.
+    \item \textbf{Average Precision (AP):} Computed as the area under the PR curve. This metric is particularly sensitive to the false positive rate, making it the preferred metric for our highly imbalanced dataset (where anomalous pixels represent $<1\%$ of the total area).
+\end{itemize}
+
+The framework reports both the mean AUC/AP across the dataset and generates global ROC/PR curves to characterize the overall system performance.
+

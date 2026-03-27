@@ -1,0 +1,37 @@
+\section{Generative Models in Remote Sensing}
+\label{sec:generative_rs}
+Generative Adversarial Networks (GANs)~\cite{Goodfellow_2014} have found significant applications in Earth Observation, particularly with SAR and coherent imaging data.
+These applications provide the direct inspiration for the methodology adopted in this thesis~\cite{Li2022SRGANRemoteSensing,yebasse2025advances}.
+
+In the context of RS data, GANs offer an attractive framework for learning complex, high-dimensional distributions of radargrams without requiring explicit parametric models of clutter, speckle, or instrumental effects~\cite{yebasse2025advances}.
+Instead of hand-crafting statistical models for each noise source, a GAN can be trained to reproduce the joint distribution of real RS observations conditioned on auxiliary inputs (e.g., simulations, masks), implicitly capturing the characteristic speckle patterns, amplitude statistics, and large-scale clutter geometries.
+This flexibility comes at the cost of more delicate training dynamics, which motivates the careful choice of architectures and loss functions discussed in Chapter~\ref{cha:methodology}.
+
+\subsection{Despeckling and Super-Resolution in Coherent Imaging}
+SAR images, like radargrams, suffer from multiplicative speckle noise.
+GAN-based models have demonstrated superior performance in despeckling compared to classical filters (e.g., Lee or Frost filters)~\cite{Ma2020SARGAN,Gu2019GANDespeckling}.
+By employing a discriminator that judges texture realism, GANs can hallucinate high-frequency details that are statistically consistent with the terrain, rather than blurring them out.
+This leads to outputs that are visually sharper and often more informative for downstream tasks such as classification or change detection~\cite{Li2022SRGANRemoteSensing}.
+
+Furthermore, Super-Resolution GANs (SRGANs) have been applied to upsample low-resolution satellite imagery, enhancing the visibility of small-scale features~\cite{Ledig2017SRGAN,Li2022SRGANRemoteSensing}.
+In SAR and RS contexts, such models can improve the apparent spatial resolution while preserving, or even accentuating, structural features like linear infrastructures, small water bodies, or fine topographic details~\cite{Donini2024SuperResRS}.
+Recent work by Donini et al. (FBK, UniTn) specifically addresses super-resolution of radargrams, demonstrating that GANs can learn to recover fine stratigraphic details and reduce the impact of limited range resolution in planetary RS data~\cite{Donini2024SuperResRS}.
+
+\subsection{Sim-to-Real Transfer}
+A critical limitation in training DL models for planetary science is the scarcity of labeled \enquote{ground truth} data.
+Unlike terrestrial applications where ground validation is feasible, planetary RS observations cannot be easily verified through in-situ measurements such as drill cores or geophysical surveys.
+Even expert manual annotations remain subjective, inconsistent across interpreters, and fundamentally limited by the ambiguity inherent to radargram interpretation.
+This paucity of reliable labels has motivated the development of \textbf{Simulation-to-Real (Sim-to-Real)} transfer learning approaches~\cite{Zhu_2017,yebasse2025advances}.
+
+The workflow typically involves:
+\begin{enumerate}
+    \item Generating extensive synthetic datasets using physics-based simulators (e.g., FDTD Maxwell solvers or geometric optics clutter models) that provide complete control over subsurface geometry, dielectric properties, and acquisition parameters~\cite{Warren_2016}.
+    \item Training models on this clean, fully labeled synthetic data, which includes ground truth for subsurface interfaces, clutter masks, and noise-free conditions.
+    \item Adapting the model to solve tasks in the real domain.
+\end{enumerate}
+
+CycleGAN~\cite{Zhu_2017} and related architectures are particularly effective for this adaptation, as they learn to translate between \enquote{Clean Simulation} and \enquote{Noisy Real} domains without requiring perfectly aligned training pairs.
+This enables \textbf{controlled data augmentation}: starting from a single simulated radargram, the network can generate multiple realistic variants that preserve the subsurface structure while introducing the full spectrum of real-world clutter statistics, speckle textures, and instrumental effects observed in SHARAD data~\cite{yebasse2025advances}.
+The resulting augmented dataset bridges the sim-to-real domain gap, substantially improving model generalization to operational planetary RS observations.
+
+
